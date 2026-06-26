@@ -141,9 +141,10 @@ body{
 .sec{font-size:15px;font-weight:900;color:var(--p);margin:16px 0 10px;display:flex;align-items:center;gap:6px}
 .sec-count{font-size:13px;font-weight:700;color:var(--m);margin-left:4px}
 .rlist{list-style:none}
-.ritem{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--ps);gap:8px}
+.ritem{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--ps);gap:8px;flex-wrap:wrap}
 .ritem:last-child{border-bottom:none}
 .rdate{color:var(--td);font-size:14px;font-weight:800;min-width:90px}
+.rcrop{width:100%;font-size:12px;color:#4b5563;font-weight:600;margin-top:2px;line-height:1.5;word-break:break-all;text-align:right}
 .rqty{color:var(--t);font-size:16px;font-weight:900;min-width:36px;text-align:center}
 .ramt{font-weight:900;font-size:16px;flex:1;text-align:right;color:var(--t)}
 .ramt.neg{color:var(--g)}
@@ -944,6 +945,7 @@ function renderCard(c,perms,searchQuery){
         <span class="rqty">${r.q||'-'}</span>
         ${has('판매금액')?`<span class="ramt${amt<0?' neg':''}">${fa(amt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
         ${bdg}
+        ${r.cs&&String(r.cs).trim()&&r.cs!=='-'?`<div class="rcrop">🌱 ${escapeHtml(r.cs)}</div>`:''}
       </li>`;
     }).join('')}</ul>
 
