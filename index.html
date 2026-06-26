@@ -144,7 +144,9 @@ body{
 .ritem{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--ps);gap:8px;flex-wrap:wrap}
 .ritem:last-child{border-bottom:none}
 .rdate{color:var(--td);font-size:14px;font-weight:800;min-width:90px}
-.rcrop{width:100%;font-size:12px;color:#4b5563;font-weight:600;margin-top:2px;line-height:1.5;word-break:break-all;text-align:right}
+.rcrop{flex:1;min-width:0;font-size:12px;color:#4b5563;font-weight:600;margin-top:2px;line-height:1.5;word-break:break-all;text-align:right}
+.rregion{font-size:12px;color:#4b5563;font-weight:700;margin-top:2px;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
+.ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start;margin-top:2px}
 .rqty{color:var(--t);font-size:16px;font-weight:900;min-width:36px;text-align:center}
 .ramt{font-weight:900;font-size:16px;flex:1;text-align:right;color:var(--t)}
 .ramt.neg{color:var(--g)}
@@ -882,7 +884,7 @@ function doSearch(){
 function renderCard(c,perms,searchQuery){
   const has=f=>perms.includes('all')||perms.includes(f);
   const recs=c.records||[];
-  const rec5=recs.slice(0,5);
+  const rec5=recs.slice(0,10);
 
   const tSales=has('판매금액')?recs.reduce((s,r)=>s+pa(r.s),0):null;
   const tUnpaid=has('미수금액')?recs.reduce((s,r)=>s+pa(r.u),0):null;
@@ -940,12 +942,15 @@ function renderCard(c,perms,searchQuery){
         else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
         else bdg='<span class="badge paid">완납</span>';
       }
+      const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
+      const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
+      const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+escapeHtml(cropTxt):''}</span></div>`:'';
       return `<li class="ritem">
         <span class="rdate">${r.d||'-'}</span>
         <span class="rqty">${r.q||'-'}</span>
         ${has('판매금액')?`<span class="ramt${amt<0?' neg':''}">${fa(amt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
         ${bdg}
-        ${r.cs&&String(r.cs).trim()&&r.cs!=='-'?`<div class="rcrop">🌱 ${escapeHtml(r.cs)}</div>`:''}
+        ${subRow}
       </li>`;
     }).join('')}</ul>
 
