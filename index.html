@@ -508,6 +508,8 @@ function toggleHcall(btn){
     if(moreText)moreText.textContent='접기';
     if(arrow)arrow.textContent='▴';
   }
+  // 펼치기/접기 후 높이 재정렬
+  setTimeout(syncRowHeights,30);
 }
 
 async function fbFetch(path){
@@ -933,7 +935,31 @@ function doSearch(){
     st.style.color='var(--g)';
     st.textContent=`⚡ ${filtered.length}건${mode}`;
     res.innerHTML=renderCard(card,perms,q);
+    // 두 페이지의 같은 인덱스 항목 높이 정렬
+    setTimeout(syncRowHeights,50);
   },30);
+}
+
+// ═══════════════════════════════════════════
+// 두 페이지의 같은 인덱스 항목 높이 맞추기
+// (옆으로 밀었을 때 같은 날짜끼리 정렬되도록)
+// ═══════════════════════════════════════════
+function syncRowHeights(){
+  document.querySelectorAll('.ritem-pages').forEach(pages=>{
+    const tradeItems=pages.querySelectorAll('.rlist .ritem');
+    const hcallItems=pages.querySelectorAll('.hlist .hitem');
+    if(!tradeItems.length||!hcallItems.length)return;
+    // 먼저 기존 height 초기화
+    tradeItems.forEach(el=>el.style.minHeight='');
+    hcallItems.forEach(el=>el.style.minHeight='');
+    // 각 인덱스별로 두 페이지 항목 높이 중 큰 값을 적용
+    const len=Math.min(tradeItems.length,hcallItems.length);
+    for(let i=0;i<len;i++){
+      const h=Math.max(tradeItems[i].offsetHeight,hcallItems[i].offsetHeight);
+      tradeItems[i].style.minHeight=h+'px';
+      hcallItems[i].style.minHeight=h+'px';
+    }
+  });
 }
 
 function renderCard(c,perms,searchQuery){
@@ -1324,8 +1350,8 @@ async function delUser(id){
 // 이벤트 핸들러
 // ═══════════════════════════════════════════
 let lc=false,qc=false,sc=false;
-window.addEventListener('resize',fixTabBar);
-window.addEventListener('orientationchange',()=>setTimeout(fixTabBar,300));
+window.addEventListener('resize',()=>{fixTabBar();syncRowHeights();});
+window.addEventListener('orientationchange',()=>setTimeout(()=>{fixTabBar();syncRowHeights();},300));
 
 const loginIdEl=document.getElementById('loginId');
 loginIdEl.addEventListener('compositionstart',()=>lc=true);
