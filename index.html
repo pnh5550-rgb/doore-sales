@@ -141,12 +141,37 @@ body{
 .sec{font-size:15px;font-weight:900;color:var(--p);margin:16px 0 10px;display:flex;align-items:center;gap:6px}
 .sec-count{font-size:13px;font-weight:700;color:var(--m);margin-left:4px}
 .rlist{list-style:none}
-.ritem{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--ps);gap:8px;flex-wrap:wrap}
+.ritem{display:flex;flex-direction:column;padding:12px 0;border-bottom:1px solid var(--ps);gap:4px}
 .ritem:last-child{border-bottom:none}
 .rdate{color:var(--td);font-size:14px;font-weight:800;min-width:90px}
-.rcrop{flex:1;min-width:0;font-size:12px;color:#4b5563;font-weight:600;margin-top:2px;line-height:1.5;word-break:break-all;text-align:right}
-.rregion{font-size:12px;color:#4b5563;font-weight:700;margin-top:2px;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
-.ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start;margin-top:2px}
+.ritem-scroll{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none}
+.ritem-scroll::-webkit-scrollbar{display:none}
+.ritem-main{display:flex;align-items:center;gap:8px;min-width:100%;flex-shrink:0;scroll-snap-align:start;padding-right:8px;position:relative}
+.ritem-main::after{content:'›';position:absolute;right:0;top:50%;transform:translateY(-50%);color:var(--pb);font-size:16px;font-weight:900;pointer-events:none;opacity:0.6}
+.ritem-hcall{min-width:calc(100% - 8px);flex-shrink:0;scroll-snap-align:start;font-size:13px;color:var(--td);font-weight:600;line-height:1.5;word-break:break-all;padding:0 4px}
+.ritem-hcall-text{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
+.ritem-hcall-text.expanded{display:block;-webkit-line-clamp:unset;overflow:visible}
+.ritem-hcall-more{
+  display:inline-flex;align-items:center;gap:5px;
+  color:white;
+  background:linear-gradient(135deg,var(--pl),var(--p));
+  font-weight:800;font-size:12px;
+  padding:5px 13px;
+  border-radius:14px;border:none;cursor:pointer;
+  margin-top:6px;
+  box-shadow:0 2px 6px rgba(109,40,217,0.3);
+  font-family:inherit;
+  transition:transform 0.15s,box-shadow 0.15s;
+  letter-spacing:0.02em;
+}
+.ritem-hcall-more:hover{box-shadow:0 3px 9px rgba(109,40,217,0.4)}
+.ritem-hcall-more:active{transform:scale(0.95);box-shadow:0 1px 3px rgba(109,40,217,0.3)}
+.ritem-hcall-more .arrow{font-size:9px;transition:transform 0.2s;display:inline-block}
+.ritem-empty{color:#ccc;font-weight:500}
+.rcrop{flex:1;min-width:0;font-size:12px;color:#4b5563;font-weight:600;line-height:1.5;word-break:break-all;text-align:right}
+.rregion{font-size:12px;color:#4b5563;font-weight:700;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
+.ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start}
+.ritem-bigo{width:100%;font-size:12px;color:var(--td);font-weight:600;line-height:1.5;word-break:break-all;padding-top:2px}
 .rqty{color:var(--t);font-size:16px;font-weight:900;min-width:36px;text-align:center}
 .ramt{font-weight:900;font-size:16px;flex:1;text-align:right;color:var(--t)}
 .ramt.neg{color:var(--g)}
@@ -453,6 +478,22 @@ function dateNum(s){
 
 function escapeHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 고객관리 내용 펼치기/접기
+function toggleHcall(btn){
+  const textEl=btn.previousElementSibling;
+  const moreText=btn.querySelector('.more-text');
+  const arrow=btn.querySelector('.arrow');
+  if(textEl.classList.contains('expanded')){
+    textEl.classList.remove('expanded');
+    if(moreText)moreText.textContent='더보기';
+    if(arrow)arrow.textContent='▾';
+  }else{
+    textEl.classList.add('expanded');
+    if(moreText)moreText.textContent='접기';
+    if(arrow)arrow.textContent='▴';
+  }
 }
 
 async function fbFetch(path){
@@ -890,9 +931,6 @@ function renderCard(c,perms,searchQuery){
   const tUnpaid=has('미수금액')?recs.reduce((s,r)=>s+pa(r.u),0):null;
   const tQty=recs.reduce((s,r)=>{const q=parseInt(String(r.q||'').replace(/[^0-9-]/g,''),10);return s+(isNaN(q)?0:q);},0);
 
-  const bigoList=has('비고')?rec5:[];
-  const hcList=has('happycall')?rec5:[];
-
   const allMonths={};
   if(has('판매금액'))recs.forEach(r=>{
     const ym=(r.d||'').substring(0,7);
@@ -945,12 +983,24 @@ function renderCard(c,perms,searchQuery){
       const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
       const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
       const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+escapeHtml(cropTxt):''}</span></div>`:'';
+      const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
+      const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?escapeHtml(r.b):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+      const hasHcall=r.h&&String(r.h).trim()&&r.h!=='-';
+      const hcallTextLen=hasHcall?String(r.h).trim().length:0;
+      const showMore=hasHcall&&hcallTextLen>80;
+      const hcallSlide=has('happycall')?`<div class="ritem-hcall">💬 <div class="ritem-hcall-text">${hasHcall?escapeHtml(r.h):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>${showMore?`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`:''}</div>`:'';
       return `<li class="ritem">
-        <span class="rdate">${r.d||'-'}</span>
-        <span class="rqty">${r.q||'-'}</span>
-        ${has('판매금액')?`<span class="ramt${amt<0?' neg':''}">${fa(amt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
-        ${bdg}
+        <div class="ritem-scroll">
+          <div class="ritem-main">
+            <span class="rdate">${r.d||'-'}</span>
+            <span class="rqty">${r.q||'-'}</span>
+            ${has('판매금액')?`<span class="ramt${amt<0?' neg':''}">${fa(amt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
+            ${bdg}
+          </div>
+          ${hcallSlide}
+        </div>
         ${subRow}
+        ${bigoRow}
       </li>`;
     }).join('')}</ul>
 
@@ -960,20 +1010,6 @@ function renderCard(c,perms,searchQuery){
       ${tSales!==null?`<div class="sc"><div class="sl2">총 거래금액</div><div class="sv2${tSales<0?' prepay':''}">${fa(tSales)}</div></div>`:''}
       ${tUnpaid!==null?`<div class="sc"><div class="sl2">${unpaidLabel}</div><div class="sv2 ${unpaidClass}">${fa(Math.abs(tUnpaid))}</div></div>`:''}
     </div>`:''}
-
-    ${has('비고')?`<div class="divider"></div>
-    <div class="sec">📝 비고 <span class="sec-count">(${bigoList.length}건)</span></div>
-    ${bigoList.length?`<ul class="note-list">${bigoList.map(r=>{
-      const content=r.b&&String(r.b).trim()&&r.b!=='-'?escapeHtml(r.b):'<span style="color:#ccc;font-weight:500">- 내용 없음 -</span>';
-      return `<li class="note-item"><div class="note-date">${r.d}</div><div class="note-text">${content}</div></li>`;
-    }).join('')}</ul>`:`<div class="note-empty">해당 내역 없음</div>`}`:''}
-
-    ${has('happycall')?`<div class="divider"></div>
-    <div class="sec">💬 고객 관리 <span class="sec-count">(${hcList.length}건)</span></div>
-    ${hcList.length?`<ul class="note-list">${hcList.map(r=>{
-      const content=r.h&&String(r.h).trim()&&r.h!=='-'?escapeHtml(r.h):'<span style="color:#ccc;font-weight:500">- 내용 없음 -</span>';
-      return `<li class="note-item"><div class="note-date">${r.d}</div><div class="note-text">${content}</div></li>`;
-    }).join('')}</ul>`:`<div class="note-empty">해당 내역 없음</div>`}`:''}
 
     ${has('판매금액')?`<div class="divider"></div>
     <div class="sec">📊 월별 구매 집계 <span class="sec-count">(최근 1년)</span></div>
@@ -1081,7 +1117,19 @@ function runAnalysis(){
 
     let rows=Object.values(map);
     if(curPeriod==='all'&&curCat!=='all'){
+      // 카테고리만 (지역/판매구분) → 금액 큰 순
       rows.sort((a,b)=>b.amt-a.amt);
+    }else if(curPeriod!=='all'){
+      // 시간 기준 정렬: 날짜 우선 (최근이 위), 같은 날짜면 카테고리 알파벳순
+      rows.sort((a,b)=>{
+        const ap=a.key.split('||');
+        const bp=b.key.split('||');
+        const aTime=ap.length>1?ap[1]:ap[0];
+        const bTime=bp.length>1?bp[1]:bp[0];
+        const cmp=bTime.localeCompare(aTime);
+        if(cmp!==0)return cmp;
+        return (ap[0]||'').localeCompare(bp[0]||'');
+      });
     }else{
       rows.sort((a,b)=>b.key.localeCompare(a.key));
     }
@@ -1145,11 +1193,19 @@ function drawBars(rows){
   const wrap=document.getElementById('chartBarsWrap');
   if(!wrap||!rows.length)return;
 
-  // 차트 정렬: 시간 기준 (전체+월별/연도별)이면 오래된→최근 (왼쪽→오른쪽)
+  // 차트 정렬: 시간 기준이면 오래된→최근 (왼쪽→오른쪽)
   let chartRows = [...rows];
-  const isTimeChart = curCat === 'all' && (curPeriod === 'month' || curPeriod === 'year');
+  const isTimeChart = curPeriod === 'month' || curPeriod === 'year';
   if(isTimeChart){
-    chartRows.sort((a,b) => a.key.localeCompare(b.key));
+    chartRows.sort((a,b)=>{
+      const ap=a.key.split('||');
+      const bp=b.key.split('||');
+      const aTime=ap.length>1?ap[1]:ap[0];
+      const bTime=bp.length>1?bp[1]:bp[0];
+      const cmp=aTime.localeCompare(bTime);
+      if(cmp!==0)return cmp;
+      return (ap[0]||'').localeCompare(bp[0]||'');
+    });
   }
 
   const vals=chartRows.map(r=>chartMode==='amt'?r.amt:r.qty);
