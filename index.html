@@ -144,13 +144,28 @@ body{
 .ritem{display:flex;flex-direction:column;padding:12px 0;border-bottom:1px solid var(--ps);gap:4px}
 .ritem:last-child{border-bottom:none}
 .rdate{color:var(--td);font-size:14px;font-weight:800;min-width:90px}
-.ritem-scroll{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none}
-.ritem-scroll::-webkit-scrollbar{display:none}
-.ritem-main{display:flex;align-items:center;gap:8px;min-width:100%;flex-shrink:0;scroll-snap-align:start;padding-right:8px;position:relative}
-.ritem-main::after{content:'›';position:absolute;right:0;top:50%;transform:translateY(-50%);color:var(--pb);font-size:16px;font-weight:900;pointer-events:none;opacity:0.6}
-.ritem-hcall{min-width:calc(100% - 8px);flex-shrink:0;scroll-snap-align:start;font-size:13px;color:var(--td);font-weight:600;line-height:1.5;word-break:break-all;padding:0 4px}
-.ritem-hcall-text{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
-.ritem-hcall-text.expanded{display:block;-webkit-line-clamp:unset;overflow:visible}
+.ritem-main-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ritem-empty{color:#ccc;font-weight:500}
+.rcrop{flex:1;min-width:0;font-size:12px;color:#4b5563;font-weight:600;line-height:1.5;word-break:break-all;text-align:right}
+.rregion{font-size:12px;color:#4b5563;font-weight:700;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
+.ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start}
+.ritem-bigo{width:100%;font-size:12px;color:var(--td);font-weight:600;line-height:1.5;word-break:break-all;padding-top:2px}
+/* 페이지 가로 스크롤 (최근 거래 ↔ 고객관리) */
+.ritem-pages{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none}
+.ritem-pages::-webkit-scrollbar{display:none}
+.ritem-page{min-width:100%;flex-shrink:0;scroll-snap-align:start}
+.ritem-page-header{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:900;color:var(--p);margin:16px 0 10px;gap:8px}
+.ritem-page-title{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.ritem-page-hint{font-size:11px;color:var(--m);font-weight:700;flex-shrink:0;animation:slideHint 1.5s ease-in-out infinite}
+@keyframes slideHint{0%,100%{transform:translateX(0);opacity:0.6}50%{transform:translateX(-3px);opacity:1}}
+/* 고객관리 페이지 */
+.hlist{list-style:none}
+.hitem{padding:12px 0;border-bottom:1px solid var(--ps)}
+.hitem:last-child{border-bottom:none}
+.hitem-date{font-size:14px;font-weight:800;color:var(--td);margin-bottom:4px}
+.hitem-text{font-size:14px;color:var(--t);line-height:1.6;font-weight:600;word-break:break-all;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hitem-text.expanded{display:block;-webkit-line-clamp:unset;overflow:visible}
+/* 더보기 버튼 */
 .ritem-hcall-more{
   display:inline-flex;align-items:center;gap:5px;
   color:white;
@@ -167,11 +182,6 @@ body{
 .ritem-hcall-more:hover{box-shadow:0 3px 9px rgba(109,40,217,0.4)}
 .ritem-hcall-more:active{transform:scale(0.95);box-shadow:0 1px 3px rgba(109,40,217,0.3)}
 .ritem-hcall-more .arrow{font-size:9px;transition:transform 0.2s;display:inline-block}
-.ritem-empty{color:#ccc;font-weight:500}
-.rcrop{flex:1;min-width:0;font-size:12px;color:#4b5563;font-weight:600;line-height:1.5;word-break:break-all;text-align:right}
-.rregion{font-size:12px;color:#4b5563;font-weight:700;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
-.ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start}
-.ritem-bigo{width:100%;font-size:12px;color:var(--td);font-weight:600;line-height:1.5;word-break:break-all;padding-top:2px}
 .rqty{color:var(--t);font-size:16px;font-weight:900;min-width:36px;text-align:center}
 .ramt{font-weight:900;font-size:16px;flex:1;text-align:right;color:var(--t)}
 .ramt.neg{color:var(--g)}
@@ -482,14 +492,15 @@ function escapeHtml(s){
 
 // 고객관리 내용 펼치기/접기
 function toggleHcall(btn){
+  // 버튼 직전의 텍스트 요소 찾기 (hitem-text 또는 ritem-hcall-text)
   const textEl=btn.previousElementSibling;
   const moreText=btn.querySelector('.more-text');
   const arrow=btn.querySelector('.arrow');
-  if(textEl.classList.contains('expanded')){
+  if(textEl&&textEl.classList.contains('expanded')){
     textEl.classList.remove('expanded');
     if(moreText)moreText.textContent='더보기';
     if(arrow)arrow.textContent='▾';
-  }else{
+  }else if(textEl){
     textEl.classList.add('expanded');
     if(moreText)moreText.textContent='접기';
     if(arrow)arrow.textContent='▴';
@@ -970,39 +981,65 @@ function renderCard(c,perms,searchQuery){
       </div>
     </div>
 
-    <div class="sec">🕐 최근 거래 <span class="sec-count">(${rec5.length}건)</span></div>
-    <ul class="rlist">${rec5.map(r=>{
-      const amt=pa(r.s);
-      const unpaid=pa(r.u);
-      let bdg='';
-      if(has('미수금액')){
-        if(unpaid>0)bdg='<span class="badge unpaid">미수</span>';
-        else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
-        else bdg='<span class="badge paid">완납</span>';
-      }
-      const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
-      const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
-      const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+escapeHtml(cropTxt):''}</span></div>`:'';
-      const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
-      const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?escapeHtml(r.b):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
-      const hasHcall=r.h&&String(r.h).trim()&&r.h!=='-';
-      const hcallTextLen=hasHcall?String(r.h).trim().length:0;
-      const showMore=hasHcall&&hcallTextLen>80;
-      const hcallSlide=has('happycall')?`<div class="ritem-hcall">💬 <div class="ritem-hcall-text">${hasHcall?escapeHtml(r.h):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>${showMore?`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`:''}</div>`:'';
-      return `<li class="ritem">
-        <div class="ritem-scroll">
-          <div class="ritem-main">
+    ${(()=>{
+      const hasHcallPerm=has('happycall');
+      const tradeRowsHtml=rec5.map(r=>{
+        const amt=pa(r.s);
+        const unpaid=pa(r.u);
+        let bdg='';
+        if(has('미수금액')){
+          if(unpaid>0)bdg='<span class="badge unpaid">미수</span>';
+          else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
+          else bdg='<span class="badge paid">완납</span>';
+        }
+        const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
+        const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
+        const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+escapeHtml(cropTxt):''}</span></div>`:'';
+        const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
+        const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?escapeHtml(r.b):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+        return `<li class="ritem">
+          <div class="ritem-main-row">
             <span class="rdate">${r.d||'-'}</span>
             <span class="rqty">${r.q||'-'}</span>
             ${has('판매금액')?`<span class="ramt${amt<0?' neg':''}">${fa(amt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
             ${bdg}
           </div>
-          ${hcallSlide}
+          ${subRow}
+          ${bigoRow}
+        </li>`;
+      }).join('');
+
+      const tradePageHtml=`<div class="ritem-page">
+        <div class="ritem-page-header">
+          <div class="ritem-page-title">🕐 최근 거래 <span class="sec-count">(${rec5.length}건)</span></div>
+          ${hasHcallPerm?`<span class="ritem-page-hint">← 옆으로 밀어보세요</span>`:''}
         </div>
-        ${subRow}
-        ${bigoRow}
-      </li>`;
-    }).join('')}</ul>
+        <ul class="rlist">${tradeRowsHtml}</ul>
+      </div>`;
+
+      let hcallPageHtml='';
+      if(hasHcallPerm){
+        const hcallRowsHtml=rec5.map(r=>{
+          const hasH=r.h&&String(r.h).trim()&&r.h!=='-';
+          const txtLen=hasH?String(r.h).trim().length:0;
+          const showMore=hasH&&txtLen>80;
+          return `<li class="hitem">
+            <div class="hitem-date">${r.d||'-'}</div>
+            <div class="hitem-text">${hasH?escapeHtml(r.h):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+            ${showMore?`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`:''}
+          </li>`;
+        }).join('');
+        hcallPageHtml=`<div class="ritem-page">
+          <div class="ritem-page-header">
+            <div class="ritem-page-title">💬 고객관리 <span class="sec-count">(${rec5.length}건)</span></div>
+            <span class="ritem-page-hint">옆으로 밀어보세요 →</span>
+          </div>
+          <ul class="hlist">${hcallRowsHtml}</ul>
+        </div>`;
+      }
+
+      return `<div class="ritem-pages">${tradePageHtml}${hcallPageHtml}</div>`;
+    })()}
 
     ${(tSales!==null||tUnpaid!==null)?`<div class="divider"></div>
     <div class="sec">💰 거래 현황</div>
