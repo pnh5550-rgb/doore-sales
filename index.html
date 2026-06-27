@@ -150,6 +150,8 @@ body{
 .rregion{font-size:12px;color:#4b5563;font-weight:700;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
 .ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start}
 .ritem-bigo{width:100%;font-size:12px;color:var(--td);font-weight:600;line-height:1.5;word-break:break-all;padding-top:2px}
+/* 키워드 자동 강조 */
+.kw-highlight{font-weight:900;color:var(--p);background:rgba(109,40,217,0.08);padding:0 3px;border-radius:3px}
 /* 페이지 가로 스크롤 (최근 거래 ↔ 고객관리) */
 .ritem-pages{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;gap:24px}
 .ritem-pages::-webkit-scrollbar{display:none}
@@ -491,6 +493,22 @@ function dateNum(s){
 
 function escapeHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 특정 키워드를 굵게 강조 (escapeHtml 적용 후 호출)
+const BOLD_KEYWORDS = ['관리요령 전송', '클레임', '지원수량 마감'];
+function highlightKeywords(escapedText){
+  if(!escapedText)return escapedText;
+  let result = escapedText;
+  BOLD_KEYWORDS.forEach(kw => {
+    // 이미 escapeHtml 처리된 키워드와 매칭
+    const escKw = kw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    // 정규식 메타문자 이스케이프
+    const safeKw = escKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(safeKw, 'g');
+    result = result.replace(re, `<strong class="kw-highlight">${escKw}</strong>`);
+  });
+  return result;
 }
 
 // 고객관리 내용 펼치기/접기
@@ -1025,7 +1043,7 @@ function renderCard(c,perms,searchQuery){
         const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
         const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+escapeHtml(cropTxt):''}</span></div>`:'';
         const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
-        const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?escapeHtml(r.b):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+        const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(r.b)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
         return `<li class="ritem">
           <div class="ritem-main-row">
             <span class="rdate">${r.d||'-'}</span>
@@ -1054,7 +1072,7 @@ function renderCard(c,perms,searchQuery){
           const showMore=hasH&&txtLen>80;
           return `<li class="hitem">
             <div class="hitem-date">${r.d||'-'}</div>
-            <div class="hitem-text">${hasH?escapeHtml(r.h):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+            <div class="hitem-text">${hasH?highlightKeywords(escapeHtml(r.h)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
             ${showMore?`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`:''}
           </li>`;
         }).join('');
