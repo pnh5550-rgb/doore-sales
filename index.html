@@ -1042,7 +1042,7 @@ function renderCard(c,perms,searchQuery){
         }
         const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
         const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
-        const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+escapeHtml(cropTxt):''}</span></div>`:'';
+        const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+highlightKeywords(escapeHtml(cropTxt)):''}</span></div>`:'';
         const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
         const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(r.b)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
         return `<li class="ritem">
