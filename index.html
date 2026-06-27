@@ -503,10 +503,11 @@ function highlightKeywords(escapedText){
   BOLD_KEYWORDS.forEach(kw => {
     // 이미 escapeHtml 처리된 키워드와 매칭
     const escKw = kw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    // 정규식 메타문자 이스케이프
-    const safeKw = escKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // 정규식 메타문자 이스케이프 + 공백을 \s+로 (줄바꿈/탭/여러 공백도 매칭)
+    const safeKw = escKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
     const re = new RegExp(safeKw, 'g');
-    result = result.replace(re, `<strong class="kw-highlight">${escKw}</strong>`);
+    // 매칭된 실제 텍스트(공백/줄바꿈 포함) 그대로 보존
+    result = result.replace(re, match => `<strong class="kw-highlight">${match}</strong>`);
   });
   return result;
 }
