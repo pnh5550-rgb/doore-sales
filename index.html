@@ -985,7 +985,7 @@ function syncRowHeights(){
 function renderCard(c,perms,searchQuery){
   const has=f=>perms.includes('all')||perms.includes(f);
   const recs=c.records||[];
-  const rec5=recs.slice(0,10);
+  const rec5=recs.slice(0,20);
 
   const tSales=has('판매금액')?recs.reduce((s,r)=>s+pa(r.s),0):null;
   const tUnpaid=has('미수금액')?recs.reduce((s,r)=>s+pa(r.u),0):null;
