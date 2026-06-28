@@ -190,6 +190,7 @@ body{
 .rqty{color:var(--t);font-size:16px;font-weight:900;min-width:36px;text-align:center}
 .ramt{font-weight:900;font-size:16px;flex:1;text-align:right;color:var(--t)}
 .ramt.neg{color:var(--g)}
+.ramt.prepay{color:#2563eb}
 .badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:800;white-space:nowrap}
 .unpaid{background:#fee2e2;color:var(--r)}
 .paid{background:#dcfce7;color:var(--g)}
@@ -493,6 +494,22 @@ function dateNum(s){
 
 function escapeHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 비고 내용 정리 (Date 객체 문자열 → YYYY-MM-DD)
+function cleanBigo(text){
+  if(!text)return '';
+  const s=String(text).trim();
+  // JS Date.toString() 형식 감지: "Mon Jun 29 2026 16:00:00 GMT+0900..."
+  const m=s.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})/);
+  if(m){
+    const months={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+    const month=months[m[2]];
+    if(month){
+      return `${m[4]}-${month}-${m[3].padStart(2,'0')}`;
+    }
+  }
+  return s;
 }
 
 // 특정 키워드를 굵게 강조 (escapeHtml 적용 후 호출)
@@ -1041,16 +1058,23 @@ function renderCard(c,perms,searchQuery){
           else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
           else bdg='<span class="badge paid">완납</span>';
         }
+        // 선입금만 받은 거래 (판매금액 0이고 미수금액 음수)일 때, 판매금액 자리에 입금액 표시
+        const isPrepayOnly=amt===0&&unpaid<0;
+        const displayAmt=isPrepayOnly?Math.abs(unpaid):amt;
+        let amtClass='';
+        if(isPrepayOnly)amtClass=' prepay';
+        else if(amt<0)amtClass=' neg';
         const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
         const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
         const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+highlightKeywords(escapeHtml(cropTxt)):''}</span></div>`:'';
         const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
-        const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(r.b)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+        const bigoText=hasBigo?cleanBigo(r.b):'';
+        const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
         return `<li class="ritem">
           <div class="ritem-main-row">
             <span class="rdate">${r.d||'-'}</span>
             <span class="rqty">${r.q||'-'}</span>
-            ${has('판매금액')?`<span class="ramt${amt<0?' neg':''}">${fa(amt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
+            ${has('판매금액')?`<span class="ramt${amtClass}">${fa(displayAmt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
             ${bdg}
           </div>
           ${subRow}
