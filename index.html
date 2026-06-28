@@ -939,7 +939,8 @@ function doSearch(){
       const da=dateNum(a.d);
       const db=dateNum(b.d);
       if(db!==da)return db-da;
-      return (a.n||'').localeCompare(b.n||'');
+      // 같은 날짜면 엑셀 행 번호 내림차순 (나중에 기록된 것이 위로)
+      return (b.row||0)-(a.row||0);
     });
 
     const card={
