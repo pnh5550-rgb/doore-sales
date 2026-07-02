@@ -159,6 +159,11 @@ body{
 .kw-highlight{font-weight:900;color:var(--p);background:rgba(109,40,217,0.08);padding:0 3px;border-radius:3px}
 .kw-highlight-pink{font-weight:900;color:#db2777;background:rgba(244,114,182,0.22);padding:0 3px;border-radius:3px}
 .kw-highlight-blue{font-weight:900;color:#2563eb;background:rgba(59,130,246,0.15);padding:0 3px;border-radius:3px}
+/* 지역 태그 (클릭해서 필터) */
+.region-tag{display:inline-block;background:#dbeafe;color:#2563eb;padding:4px 12px;border-radius:14px;margin-right:5px;margin-bottom:5px;font-weight:800;cursor:pointer;font-size:13px;transition:all 0.15s;border:1.5px solid #93c5fd}
+.region-tag:hover{background:#bfdbfe}
+.region-tag:active{transform:scale(0.95)}
+.region-tag::before{content:'📍 ';font-size:11px}
 /* 페이지 가로 스크롤 (최근 거래 ↔ 고객관리) */
 .ritem-pages{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;gap:24px}
 .ritem-pages::-webkit-scrollbar{display:none}
@@ -224,6 +229,20 @@ body{
 .analysis-wrap{padding:12px 12px 100px}
 .analysis-card{background:white;border-radius:20px;padding:18px 16px;margin-bottom:14px;box-shadow:0 3px 16px rgba(109,40,217,0.08);border:1.5px solid var(--pb)}
 .analysis-title{font-size:19px;font-weight:900;color:var(--p);margin-bottom:18px}
+/* 다중 필터 섹션 */
+.filter-section{background:#faf9ff;border-radius:12px;padding:12px;margin-bottom:12px;border:1.5px solid var(--pb)}
+.filter-label{font-size:14px;font-weight:900;color:var(--p);margin-bottom:8px}
+.filter-tags{display:flex;flex-wrap:wrap;gap:5px;min-height:2px;margin-bottom:8px}
+.filter-tag{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--p),var(--pd));color:white;padding:5px 4px 5px 12px;border-radius:14px;font-weight:800;font-size:13px}
+.filter-tag-close{cursor:pointer;background:rgba(255,255,255,0.25);border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;user-select:none}
+.filter-tag-close:active{background:rgba(255,255,255,0.4)}
+.filter-input-row{display:flex;gap:6px}
+.filter-input{flex:1;font-size:14px;padding:9px 12px;border:2px solid var(--pb);border-radius:10px;outline:none;background:white;color:var(--t);font-weight:600;min-width:0}
+.filter-input:focus{border-color:var(--p)}
+.filter-add-btn{background:var(--p);color:white;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0}
+.filter-add-btn:active{transform:scale(0.95)}
+.filter-clear-btn{width:100%;background:#f5f5f5;color:var(--td);border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;margin-top:4px}
+.filter-clear-btn:active{background:#e5e5e5}
 .cat-label{font-size:13px;font-weight:800;color:var(--td);margin-bottom:8px;letter-spacing:0.02em}
 .seg-wrap{display:flex;background:var(--ps);border-radius:14px;padding:4px;margin-bottom:16px}
 .seg-btn{flex:1;padding:11px 4px;font-size:14px;font-weight:800;color:var(--m);border:none;background:none;border-radius:11px;cursor:pointer}
@@ -361,20 +380,41 @@ body{
     <div class="analysis-wrap">
       <div class="analysis-card">
         <div class="analysis-title">📊 판매 분석</div>
-        <div class="cat-label">카테고리</div>
-        <div class="seg-wrap" id="catSeg">
-          <button class="seg-btn active" onclick="switchCat('all')">전체</button>
-          <button class="seg-btn" onclick="switchCat('region')">지역</button>
-          <button class="seg-btn" onclick="switchCat('type')">판매구분</button>
-        </div>
-        <div id="subSearchWrap" class="hidden">
-          <div class="sub-search-wrap">
-            <input type="text" id="subSearch" class="sub-search" placeholder="" autocomplete="off"/>
-            <div class="sub-hint" id="subHint"></div>
-            <button class="search-exec-btn" onclick="runAnalysis()">🔍 검색</button>
+
+        <!-- 지역 필터 -->
+        <div class="filter-section">
+          <div class="filter-label">🌍 지역</div>
+          <div class="filter-tags" id="regionTags"></div>
+          <div class="filter-input-row">
+            <input type="text" id="regionSearch" class="filter-input" placeholder="지역 입력 (예: 포천)" autocomplete="off"/>
+            <button class="filter-add-btn" onclick="addFilter('region')">+ 추가</button>
           </div>
         </div>
-        <div class="cat-label">기간</div>
+
+        <!-- 판매구분 필터 -->
+        <div class="filter-section">
+          <div class="filter-label">🏷️ 판매구분</div>
+          <div class="filter-tags" id="typeTags"></div>
+          <div class="filter-input-row">
+            <input type="text" id="typeSearch" class="filter-input" placeholder="판매구분 입력 (예: 본사)" autocomplete="off"/>
+            <button class="filter-add-btn" onclick="addFilter('type')">+ 추가</button>
+          </div>
+        </div>
+
+        <!-- 고객명 필터 -->
+        <div class="filter-section">
+          <div class="filter-label">👤 고객명</div>
+          <div class="filter-tags" id="nameTags"></div>
+          <div class="filter-input-row">
+            <input type="text" id="nameSearch" class="filter-input" placeholder="고객명 입력 (예: 신득호)" autocomplete="off"/>
+            <button class="filter-add-btn" onclick="addFilter('name')">+ 추가</button>
+          </div>
+        </div>
+
+        <!-- 필터 초기화 -->
+        <button class="filter-clear-btn" onclick="clearAllFilters()">🔄 필터 전체 초기화</button>
+
+        <div class="cat-label" style="margin-top:16px">기간</div>
         <div class="period-wrap" id="periodSeg">
           <button class="period-btn active" onclick="switchPeriod('all')">전체</button>
           <button class="period-btn" onclick="switchPeriod('year')">연도별</button>
@@ -452,7 +492,7 @@ const LAST_SEARCH_KEY = 'pm_last_search_v1';  // ← 마지막 검색어 저장
 const LAST_TAB_KEY = 'pm_last_tab_v1';  // ← 마지막 탭 저장
 
 let CU = null, ALL_DATA = [], WARNINGS = [], META = null;
-let curCat = 'all', curPeriod = 'all', changePwTargetId = '', chartMode = 'amt';
+let curPeriod = 'all', changePwTargetId = '', chartMode = 'amt';
 
 // ═══════════════════════════════════════════
 // 유틸리티
@@ -543,6 +583,22 @@ function highlightKeywords(escapedText){
     result = result.replace(re, match => `<strong class="${cls}">${match}</strong>`);
   });
   return result;
+}
+
+// 지역 태그 클릭 → 검색어에 지역명 추가 후 재검색
+function filterByRegion(el,regionName){
+  const qEl=document.getElementById('q');
+  const q=qEl.value.trim();
+  // 이미 그 지역이 검색어에 있으면 무시
+  if(q.toLowerCase().includes(regionName.toLowerCase())){
+    // 클릭 피드백만
+    if(el){el.style.background='#93c5fd';setTimeout(()=>{el.style.background='';},300);}
+    return;
+  }
+  qEl.value=q?(q+' '+regionName):regionName;
+  doSearch();
+  // 검색창까지 스크롤
+  qEl.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 // 고객관리 내용 펼치기/접기
@@ -1053,6 +1109,14 @@ function renderCard(c,perms,searchQuery){
       </div>`
     :'';
 
+  // 지역 태그 - 클릭하면 지역명으로 추가 필터
+  const relatedRegionsHtml=(c.relatedRegions&&c.relatedRegions.length>1)
+    ?`<div style="font-size:13px;color:var(--td);margin-top:8px;font-weight:700;line-height:1.5">
+        <div style="font-size:12px;color:var(--m);margin-bottom:4px;font-weight:700">👇 지역을 눌러 좁혀서 검색</div>
+        ${c.relatedRegions.slice(0,15).map(r=>`<span class="region-tag" onclick="filterByRegion(this,'${escapeHtml(r).replace(/'/g,"\\'")}')">${escapeHtml(r)}</span>`).join('')}
+      </div>`
+    :'';
+
   return `<div class="card">
     <div class="card-header">
       <div class="avatar">${ini(c.name)}</div>
@@ -1060,6 +1124,7 @@ function renderCard(c,perms,searchQuery){
         <div class="cname">${escapeHtml(c.name)}<span class="cbadge">${recs.length}건</span></div>
         <div class="cregion">📍 <strong>${escapeHtml(c.region||'-')}</strong></div>
         ${relatedNamesHtml}
+        ${relatedRegionsHtml}
       </div>
     </div>
 
@@ -1164,27 +1229,58 @@ function renderCard(c,perms,searchQuery){
 }
 
 // ═══════════════════════════════════════════
-// 판매 분석
+// 판매 분석 - 다중 필터 (지역/판매구분/고객명)
 // ═══════════════════════════════════════════
-function switchCat(cat){
-  curCat=cat;
-  document.querySelectorAll('#catSeg .seg-btn').forEach((b,i)=>b.classList.toggle('active',['all','region','type'][i]===cat));
-  const wrap=document.getElementById('subSearchWrap');
-  const input=document.getElementById('subSearch');
-  const hint=document.getElementById('subHint');
-  input.value='';
-  if(cat==='region'){
-    wrap.classList.remove('hidden');
-    input.placeholder='지역 검색 (예: 평창, dmz, 광주)';
-    hint.textContent='💡 단어가 포함된 모든 지역 검색';
-  }else if(cat==='type'){
-    wrap.classList.remove('hidden');
-    input.placeholder='판매구분 검색 (예: 본사, 영업, 네이버)';
-    hint.textContent='💡 단어가 포함된 모든 판매구분 검색';
-  }else{
-    wrap.classList.add('hidden');
+
+// 분석 필터 상태
+let ANALYSIS_FILTERS = {
+  region: [],
+  type: [],
+  name: []
+};
+
+function addFilter(kind){
+  const inputId = kind + 'Search';
+  const inputEl = document.getElementById(inputId);
+  const val = (inputEl.value || '').trim();
+  if(!val) return;
+  if(ANALYSIS_FILTERS[kind].includes(val)){
+    // 이미 있는 값이면 시각 피드백
+    inputEl.style.borderColor='#dc2626';
+    setTimeout(()=>{inputEl.style.borderColor='';},600);
+    return;
   }
+  ANALYSIS_FILTERS[kind].push(val);
+  inputEl.value = '';
+  renderFilterTags();
   runAnalysis();
+}
+
+function removeFilter(kind, val){
+  ANALYSIS_FILTERS[kind] = ANALYSIS_FILTERS[kind].filter(v => v !== val);
+  renderFilterTags();
+  runAnalysis();
+}
+
+function clearAllFilters(){
+  ANALYSIS_FILTERS = {region:[], type:[], name:[]};
+  renderFilterTags();
+  runAnalysis();
+}
+
+function renderFilterTags(){
+  ['region','type','name'].forEach(kind => {
+    const cont = document.getElementById(kind + 'Tags');
+    if(!cont) return;
+    if(ANALYSIS_FILTERS[kind].length === 0){
+      cont.innerHTML = '';
+      return;
+    }
+    cont.innerHTML = ANALYSIS_FILTERS[kind].map(v => {
+      const esc = escapeHtml(v).replace(/'/g,"\\'");
+      return `<span class="filter-tag">${escapeHtml(v)}<span class="filter-tag-close" onclick="removeFilter('${kind}','${esc}')">✕</span></span>`;
+    }).join('');
+  });
 }
 
 function switchPeriod(p){
@@ -1200,18 +1296,31 @@ function runAnalysis(){
   st.style.color='var(--m)';st.textContent='집계 중...';
 
   setTimeout(()=>{
-    const subQ=(document.getElementById('subSearch')?.value||'').trim().toLowerCase();
+    // 필터 적용 (같은 종류 안에서는 OR, 다른 종류끼리는 AND)
     let src=ALL_DATA;
-
-    if(curCat==='region'&&subQ){
-      src=ALL_DATA.filter(r=>(r.r||'').toLowerCase().includes(subQ));
-    }else if(curCat==='type'&&subQ){
-      src=ALL_DATA.filter(r=>{
-        const tp=(r.t||'').toLowerCase();
-        return tp.includes(subQ)||tp.replace(/\s/g,'').includes(subQ.replace(/\s/g,''));
+    if(ANALYSIS_FILTERS.region.length){
+      src=src.filter(r=>{
+        const val=(r.r||'').toLowerCase();
+        return ANALYSIS_FILTERS.region.some(f=>val.includes(f.toLowerCase()));
+      });
+    }
+    if(ANALYSIS_FILTERS.type.length){
+      src=src.filter(r=>{
+        const val=(r.t||'').toLowerCase();
+        return ANALYSIS_FILTERS.type.some(f=>{
+          const lf=f.toLowerCase();
+          return val.includes(lf)||val.replace(/\s/g,'').includes(lf.replace(/\s/g,''));
+        });
+      });
+    }
+    if(ANALYSIS_FILTERS.name.length){
+      src=src.filter(r=>{
+        const val=(r.n||'').toLowerCase();
+        return ANALYSIS_FILTERS.name.some(f=>val.includes(f.toLowerCase()));
       });
     }
 
+    // 기간별 집계
     const map={};
     const nowYM=new Date();
     const maxYear=nowYM.getFullYear()+1;
@@ -1226,59 +1335,36 @@ function runAnalysis(){
       const amt=pa(r.s);
       const qty=parseInt(String(r.q||'').replace(/[^0-9-]/g,''),10)||0;
 
-      let key='';
-      if(curCat==='all'){
-        key=curPeriod==='all'?'전체':curPeriod==='year'?year:ym;
-      }else if(curCat==='region'){
-        const reg=r.r||'기타';
-        key=curPeriod==='all'?reg:curPeriod==='year'?reg+'||'+year:reg+'||'+ym;
-      }else{
-        const tp=r.t||'미분류';
-        key=curPeriod==='all'?tp:curPeriod==='year'?tp+'||'+year:tp+'||'+ym;
-      }
+      const key=curPeriod==='all'?'전체':curPeriod==='year'?year:ym;
       if(!map[key])map[key]={key:key,amt:0,qty:0};
       map[key].amt+=amt;
       map[key].qty+=qty;
     });
 
+    // 정렬 (시간 내림차순)
     let rows=Object.values(map);
-    if(curPeriod==='all'&&curCat!=='all'){
-      // 카테고리만 (지역/판매구분) → 금액 큰 순
-      rows.sort((a,b)=>b.amt-a.amt);
-    }else if(curPeriod!=='all'){
-      // 시간 기준 정렬: 날짜 우선 (최근이 위), 같은 날짜면 카테고리 알파벳순
-      rows.sort((a,b)=>{
-        const ap=a.key.split('||');
-        const bp=b.key.split('||');
-        const aTime=ap.length>1?ap[1]:ap[0];
-        const bTime=bp.length>1?bp[1]:bp[0];
-        const cmp=bTime.localeCompare(aTime);
-        if(cmp!==0)return cmp;
-        return (ap[0]||'').localeCompare(bp[0]||'');
-      });
-    }else{
+    if(curPeriod!=='all'){
       rows.sort((a,b)=>b.key.localeCompare(a.key));
     }
 
     const totalAmt=rows.reduce((s,r)=>s+r.amt,0);
     const totalQty=rows.reduce((s,r)=>s+r.qty,0);
-    const colLabel=curCat==='all'?'기간':curCat==='region'?'지역':'판매구분';
+    const colLabel='기간';
     const subtitle=curPeriod==='all'?'':curPeriod==='year'?' · 연도별':' · 월별';
 
     let tbody='';
     rows.forEach(r=>{
-      let label='';
-      if(curCat==='all'){
-        label=curPeriod==='all'?'전체':curPeriod==='year'?r.key+'년':r.key;
-      }else{
-        const p=r.key.split('||');
-        label=p[0]+(p[1]?(curPeriod==='year'?' / '+p[1]+'년':' / '+p[1]):'');
-      }
+      const label=curPeriod==='all'?'전체':curPeriod==='year'?r.key+'년':r.key;
       const amtStr=r.amt<0?'-'+Math.abs(r.amt).toLocaleString()+'원':r.amt.toLocaleString()+'원';
       tbody+=`<tr><td>${escapeHtml(label)}</td><td class="amt"${r.amt<0?' style="color:#2563eb"':''}>${amtStr}</td><td class="qty">${r.qty.toLocaleString()}</td></tr>`;
     });
 
-    const filterInfo=subQ?` · "${subQ}"`:'';
+    // 필터 요약 (상태바용)
+    const filterParts=[];
+    if(ANALYSIS_FILTERS.region.length)filterParts.push('🌍'+ANALYSIS_FILTERS.region.join(','));
+    if(ANALYSIS_FILTERS.type.length)filterParts.push('🏷️'+ANALYSIS_FILTERS.type.join(','));
+    if(ANALYSIS_FILTERS.name.length)filterParts.push('👤'+ANALYSIS_FILTERS.name.join(','));
+    const filterInfo=filterParts.length?' · '+filterParts.join(' / '):' · 전체';
     const totalStr=totalAmt<0?'-'+Math.abs(totalAmt).toLocaleString()+'원':totalAmt.toLocaleString()+'원';
 
     res.innerHTML=rows.length?`<table class="atable">
@@ -1339,13 +1425,7 @@ function drawBars(rows){
   wrap.innerHTML=`<div class="chart-bars">${chartRows.map((r,i)=>{
     const val=chartMode==='amt'?r.amt:r.qty;
     const h=Math.max(4,Math.round((Math.abs(val)/maxAbs)*150));
-    let lbl='';
-    if(curCat==='all'){
-      lbl=curPeriod==='month'?r.key.replace(/^\d{4}-/,''):curPeriod==='year'?r.key+'년':'전체';
-    }else{
-      const p=r.key.split('||');
-      lbl=(p[0]||'').substring(0,4);
-    }
+    const lbl=curPeriod==='month'?r.key.replace(/^\d{4}-/,''):curPeriod==='year'?r.key+'년':'전체';
     const bg=val<0?'linear-gradient(180deg,#93c5fd,#2563eb)':'linear-gradient(180deg,#a78bfa,#6d28d9)';
     return `<div class="chart-bar-col">
       <div class="chart-bar-val">${faShort(val)}</div>
@@ -1409,7 +1489,7 @@ async function delUser(id){
 // ═══════════════════════════════════════════
 // 이벤트 핸들러
 // ═══════════════════════════════════════════
-let lc=false,qc=false,sc=false;
+let lc=false,qc=false;
 window.addEventListener('resize',()=>{fixTabBar();syncRowHeights();});
 window.addEventListener('orientationchange',()=>setTimeout(()=>{fixTabBar();syncRowHeights();},300));
 
@@ -1425,10 +1505,20 @@ qEl.addEventListener('compositionstart',()=>qc=true);
 qEl.addEventListener('compositionend',()=>qc=false);
 qEl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!qc)doSearch();});
 
-const subEl=document.getElementById('subSearch');
-subEl.addEventListener('compositionstart',()=>sc=true);
-subEl.addEventListener('compositionend',()=>{sc=false;});
-subEl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!sc)runAnalysis();});
+// 분석 필터 3개 (지역/판매구분/고객명) - Enter 키로 추가
+['region','type','name'].forEach(kind => {
+  const el = document.getElementById(kind + 'Search');
+  if(!el) return;
+  let composing = false;
+  el.addEventListener('compositionstart', () => composing = true);
+  el.addEventListener('compositionend', () => composing = false);
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !composing){
+      e.preventDefault();
+      addFilter(kind);
+    }
+  });
+});
 
 // 화면 다시 활성화 시 백그라운드 동기화 (검색 결과는 유지!)
 document.addEventListener('visibilitychange', () => {
