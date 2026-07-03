@@ -424,6 +424,9 @@ body{
           <div class="cat-panel-hint" id="freeSearchHint"></div>
         </div>
 
+        <!-- 조건 더 좁히기 태그 영역 -->
+        <div id="analysisDrillArea"></div>
+
         <!-- 기간 -->
         <div class="cat-label" style="margin-top:16px">기간</div>
         <div class="period-wrap" id="periodSeg">
@@ -1470,11 +1473,15 @@ function runAnalysis(){
       }
     }
 
-    res.innerHTML=(rows.length?`<table class="atable">
+    res.innerHTML=rows.length?`<table class="atable">
       <thead><tr><th>${colLabel}${subtitle}</th><th class="amt">판매금액</th><th class="qty">수량</th></tr></thead>
       <tbody>${tbody}</tbody>
       <tfoot><tr class="total-row"><td>합계</td><td class="amt"${totalAmt<0?' style="color:#2563eb"':''}>${totalStr}</td><td class="qty">${totalQty.toLocaleString()}</td></tr></tfoot>
-    </table>`:'<div class="nores">해당 데이터가 없습니다.</div>')+extraTagsHtml;
+    </table>`:'<div class="nores">해당 데이터가 없습니다.</div>';
+
+    // 조건 더 좁히기 태그는 기간 위쪽 별도 영역에 표시
+    const drillArea=document.getElementById('analysisDrillArea');
+    if(drillArea)drillArea.innerHTML=extraTagsHtml;
 
     st.style.color='var(--g)';
     st.textContent=`✅ ${rows.length}건 · ${totalStr}${filterInfo}`;
