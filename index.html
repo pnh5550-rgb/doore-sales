@@ -229,20 +229,28 @@ body{
 .analysis-wrap{padding:12px 12px 100px}
 .analysis-card{background:white;border-radius:20px;padding:18px 16px;margin-bottom:14px;box-shadow:0 3px 16px rgba(109,40,217,0.08);border:1.5px solid var(--pb)}
 .analysis-title{font-size:19px;font-weight:900;color:var(--p);margin-bottom:18px}
-/* 다중 필터 섹션 */
-.filter-section{background:#faf9ff;border-radius:12px;padding:12px;margin-bottom:12px;border:1.5px solid var(--pb)}
-.filter-label{font-size:14px;font-weight:900;color:var(--p);margin-bottom:8px}
-.filter-tags{display:flex;flex-wrap:wrap;gap:5px;min-height:2px;margin-bottom:8px}
-.filter-tag{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--p),var(--pd));color:white;padding:5px 4px 5px 12px;border-radius:14px;font-weight:800;font-size:13px}
-.filter-tag-close{cursor:pointer;background:rgba(255,255,255,0.25);border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;user-select:none}
-.filter-tag-close:active{background:rgba(255,255,255,0.4)}
+/* 카테고리 하위 패널 */
+.cat-panel{background:#faf9ff;border-radius:12px;padding:14px;margin-top:10px;border:1.5px solid var(--pb)}
+.cat-panel-title{font-size:13px;font-weight:800;color:var(--p);margin-bottom:10px}
+.cat-panel-hint{font-size:12px;color:var(--m);font-weight:700;margin-top:8px}
+/* 주요지역 목록 */
+.major-region-list{display:flex;flex-direction:column;gap:6px}
+.major-region-item{background:white;color:var(--t);border:2px solid var(--pb);border-radius:10px;padding:11px 14px;font-size:14px;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;font-family:inherit}
+.major-region-item:hover{background:var(--ps);border-color:var(--pl)}
+.major-region-item:active{transform:scale(0.98)}
+.major-region-item.selected{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border-color:var(--p)}
+/* 검색 입력창 */
 .filter-input-row{display:flex;gap:6px}
-.filter-input{flex:1;font-size:14px;padding:9px 12px;border:2px solid var(--pb);border-radius:10px;outline:none;background:white;color:var(--t);font-weight:600;min-width:0}
+.filter-input{flex:1;font-size:14px;padding:10px 12px;border:2px solid var(--pb);border-radius:10px;outline:none;background:white;color:var(--t);font-weight:600;min-width:0}
 .filter-input:focus{border-color:var(--p)}
-.filter-add-btn{background:var(--p);color:white;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0}
+.filter-add-btn{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(109,40,217,0.2)}
 .filter-add-btn:active{transform:scale(0.95)}
-.filter-clear-btn{width:100%;background:#f5f5f5;color:var(--td);border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;margin-top:4px}
-.filter-clear-btn:active{background:#e5e5e5}
+/* 현재 조건 표시 바 */
+.current-filter-bar{display:flex;align-items:center;gap:8px;background:#ecfccb;border:1.5px solid #84cc16;border-radius:10px;padding:9px 12px;margin-top:10px;flex-wrap:wrap}
+.current-filter-label{font-size:12px;font-weight:800;color:#4d7c0f;flex-shrink:0}
+#currentFilterValue{font-size:13px;font-weight:900;color:#365314;flex:1;min-width:0;word-break:break-all}
+.current-filter-clear{background:#65a30d;color:white;border:none;border-radius:12px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0}
+.current-filter-clear:active{background:#4d7c0f}
 .cat-label{font-size:13px;font-weight:800;color:var(--td);margin-bottom:8px;letter-spacing:0.02em}
 .seg-wrap{display:flex;background:var(--ps);border-radius:14px;padding:4px;margin-bottom:16px}
 .seg-btn{flex:1;padding:11px 4px;font-size:14px;font-weight:800;color:var(--m);border:none;background:none;border-radius:11px;cursor:pointer}
@@ -381,39 +389,38 @@ body{
       <div class="analysis-card">
         <div class="analysis-title">📊 판매 분석</div>
 
-        <!-- 지역 필터 -->
-        <div class="filter-section">
-          <div class="filter-label">🌍 지역</div>
-          <div class="filter-tags" id="regionTags"></div>
-          <div class="filter-input-row">
-            <input type="text" id="regionSearch" class="filter-input" placeholder="지역 입력 (예: 포천)" autocomplete="off"/>
-            <button class="filter-add-btn" onclick="addFilter('region')">+ 추가</button>
-          </div>
+        <!-- 카테고리 선택 -->
+        <div class="cat-label">카테고리</div>
+        <div class="period-wrap" id="catSeg">
+          <button class="period-btn active" onclick="switchAnalysisCat('all')">전체</button>
+          <button class="period-btn" onclick="switchAnalysisCat('major')">주요지역</button>
+          <button class="period-btn" onclick="switchAnalysisCat('search')">검색</button>
         </div>
 
-        <!-- 판매구분 필터 -->
-        <div class="filter-section">
-          <div class="filter-label">🏷️ 판매구분</div>
-          <div class="filter-tags" id="typeTags"></div>
-          <div class="filter-input-row">
-            <input type="text" id="typeSearch" class="filter-input" placeholder="판매구분 입력 (예: 본사)" autocomplete="off"/>
-            <button class="filter-add-btn" onclick="addFilter('type')">+ 추가</button>
-          </div>
+        <!-- 주요지역 선택 목록 -->
+        <div id="majorRegionPanel" class="cat-panel hidden">
+          <div class="cat-panel-title">👇 아래에서 하나를 선택하세요</div>
+          <div class="major-region-list" id="majorRegionList"></div>
         </div>
 
-        <!-- 고객명 필터 -->
-        <div class="filter-section">
-          <div class="filter-label">👤 고객명</div>
-          <div class="filter-tags" id="nameTags"></div>
+        <!-- 검색 입력창 -->
+        <div id="searchInputPanel" class="cat-panel hidden">
+          <div class="cat-panel-title">🔍 지역 · 판매구분 · 고객명 검색</div>
           <div class="filter-input-row">
-            <input type="text" id="nameSearch" class="filter-input" placeholder="고객명 입력 (예: 신득호)" autocomplete="off"/>
-            <button class="filter-add-btn" onclick="addFilter('name')">+ 추가</button>
+            <input type="text" id="freeSearch" class="filter-input" placeholder="검색어 입력 (예: 포천, 본사, 신득호)" autocomplete="off"/>
+            <button class="filter-add-btn" onclick="applyFreeSearch()">검색</button>
           </div>
+          <div class="cat-panel-hint" id="freeSearchHint"></div>
         </div>
 
-        <!-- 필터 초기화 -->
-        <button class="filter-clear-btn" onclick="clearAllFilters()">🔄 필터 전체 초기화</button>
+        <!-- 현재 적용 필터 표시 -->
+        <div id="currentFilterBar" class="current-filter-bar hidden">
+          <span class="current-filter-label">현재 조건:</span>
+          <span id="currentFilterValue"></span>
+          <button class="current-filter-clear" onclick="clearAnalysisFilter()">✕ 해제</button>
+        </div>
 
+        <!-- 기간 -->
         <div class="cat-label" style="margin-top:16px">기간</div>
         <div class="period-wrap" id="periodSeg">
           <button class="period-btn active" onclick="switchPeriod('all')">전체</button>
@@ -1229,58 +1236,112 @@ function renderCard(c,perms,searchQuery){
 }
 
 // ═══════════════════════════════════════════
-// 판매 분석 - 다중 필터 (지역/판매구분/고객명)
+// 판매 분석 - 카테고리 방식
 // ═══════════════════════════════════════════
 
-// 분석 필터 상태
-let ANALYSIS_FILTERS = {
-  region: [],
-  type: [],
-  name: []
-};
+// 주요지역 목록 (특수 처리 규칙 포함)
+// exclude: 그 단어 포함하는 데이터는 제외
+// field: 'region' | 'type' - 어느 필드에서 검색할지 (기본 region)
+const MAJOR_REGIONS = [
+  {label:'광주 (전남광주 제외)', keyword:'광주', exclude:'전남광주'},
+  {label:'수원', keyword:'수원'},
+  {label:'가평', keyword:'가평'},
+  {label:'평창', keyword:'평창'},
+  {label:'강북종묘사', keyword:'강북종묘사'},
+  {label:'서청주 정봉지점', keyword:'서청주 정봉'},
+  {label:'정명바이오', keyword:'정명바이오'},
+  {label:'화천농협 사내지점', keyword:'화천농협 사내'},
+  {label:'네이버 (판매구분)', keyword:'네이버', field:'type'}
+];
 
-function addFilter(kind){
-  const inputId = kind + 'Search';
-  const inputEl = document.getElementById(inputId);
-  const val = (inputEl.value || '').trim();
-  if(!val) return;
-  if(ANALYSIS_FILTERS[kind].includes(val)){
-    // 이미 있는 값이면 시각 피드백
-    inputEl.style.borderColor='#dc2626';
-    setTimeout(()=>{inputEl.style.borderColor='';},600);
+// 현재 분석 상태
+let curAnalysisCat = 'all';  // 'all' | 'major' | 'search'
+let curAnalysisFilter = null;  // { label, keyword, exclude, field }
+
+function switchAnalysisCat(cat){
+  curAnalysisCat = cat;
+  document.querySelectorAll('#catSeg .period-btn').forEach((b,i)=>b.classList.toggle('active',['all','major','search'][i]===cat));
+  const majorPanel = document.getElementById('majorRegionPanel');
+  const searchPanel = document.getElementById('searchInputPanel');
+  if(cat==='all'){
+    majorPanel.classList.add('hidden');
+    searchPanel.classList.add('hidden');
+    clearAnalysisFilter();  // 전체 선택하면 필터 해제
+  }else if(cat==='major'){
+    majorPanel.classList.remove('hidden');
+    searchPanel.classList.add('hidden');
+    renderMajorRegionList();
+  }else if(cat==='search'){
+    majorPanel.classList.add('hidden');
+    searchPanel.classList.remove('hidden');
+    setTimeout(()=>{const el=document.getElementById('freeSearch');if(el)el.focus();},100);
+  }
+}
+
+function renderMajorRegionList(){
+  const cont = document.getElementById('majorRegionList');
+  if(!cont) return;
+  cont.innerHTML = MAJOR_REGIONS.map((r,i) => {
+    const isSel = curAnalysisFilter && curAnalysisFilter.label === r.label;
+    return `<button class="major-region-item${isSel?' selected':''}" onclick="selectMajorRegion(${i})">${escapeHtml(r.label)}</button>`;
+  }).join('');
+}
+
+function selectMajorRegion(idx){
+  const r = MAJOR_REGIONS[idx];
+  if(!r) return;
+  curAnalysisFilter = {
+    label: r.label,
+    keyword: r.keyword,
+    exclude: r.exclude || null,
+    field: r.field || 'region'
+  };
+  renderMajorRegionList();
+  showCurrentFilter();
+  runAnalysis();
+}
+
+function applyFreeSearch(){
+  const el = document.getElementById('freeSearch');
+  const val = (el.value||'').trim();
+  if(!val){
+    el.style.borderColor='#dc2626';
+    setTimeout(()=>{el.style.borderColor='';},600);
     return;
   }
-  ANALYSIS_FILTERS[kind].push(val);
-  inputEl.value = '';
-  renderFilterTags();
+  curAnalysisFilter = {
+    label: val,
+    keyword: val,
+    exclude: null,
+    field: 'any'  // 지역/판매구분/고객명 모두 검색
+  };
+  showCurrentFilter();
+  runAnalysis();
+  // 힌트 업데이트
+  const hint = document.getElementById('freeSearchHint');
+  if(hint) hint.textContent = `💡 "${val}" 이 포함된 지역/판매구분/고객명 모두 검색`;
+}
+
+function clearAnalysisFilter(){
+  curAnalysisFilter = null;
+  document.getElementById('currentFilterBar').classList.add('hidden');
+  const hint = document.getElementById('freeSearchHint');
+  if(hint) hint.textContent = '';
+  const freeEl = document.getElementById('freeSearch');
+  if(freeEl) freeEl.value = '';
+  renderMajorRegionList();
   runAnalysis();
 }
 
-function removeFilter(kind, val){
-  ANALYSIS_FILTERS[kind] = ANALYSIS_FILTERS[kind].filter(v => v !== val);
-  renderFilterTags();
-  runAnalysis();
-}
-
-function clearAllFilters(){
-  ANALYSIS_FILTERS = {region:[], type:[], name:[]};
-  renderFilterTags();
-  runAnalysis();
-}
-
-function renderFilterTags(){
-  ['region','type','name'].forEach(kind => {
-    const cont = document.getElementById(kind + 'Tags');
-    if(!cont) return;
-    if(ANALYSIS_FILTERS[kind].length === 0){
-      cont.innerHTML = '';
-      return;
-    }
-    cont.innerHTML = ANALYSIS_FILTERS[kind].map(v => {
-      const esc = escapeHtml(v).replace(/'/g,"\\'");
-      return `<span class="filter-tag">${escapeHtml(v)}<span class="filter-tag-close" onclick="removeFilter('${kind}','${esc}')">✕</span></span>`;
-    }).join('');
-  });
+function showCurrentFilter(){
+  const bar = document.getElementById('currentFilterBar');
+  const val = document.getElementById('currentFilterValue');
+  if(!curAnalysisFilter){
+    bar.classList.add('hidden');
+    return;
+  }
+  val.textContent = curAnalysisFilter.label;
+  bar.classList.remove('hidden');
 }
 
 function switchPeriod(p){
@@ -1296,27 +1357,28 @@ function runAnalysis(){
   st.style.color='var(--m)';st.textContent='집계 중...';
 
   setTimeout(()=>{
-    // 필터 적용 (같은 종류 안에서는 OR, 다른 종류끼리는 AND)
-    let src=ALL_DATA;
-    if(ANALYSIS_FILTERS.region.length){
-      src=src.filter(r=>{
-        const val=(r.r||'').toLowerCase();
-        return ANALYSIS_FILTERS.region.some(f=>val.includes(f.toLowerCase()));
-      });
-    }
-    if(ANALYSIS_FILTERS.type.length){
-      src=src.filter(r=>{
-        const val=(r.t||'').toLowerCase();
-        return ANALYSIS_FILTERS.type.some(f=>{
-          const lf=f.toLowerCase();
-          return val.includes(lf)||val.replace(/\s/g,'').includes(lf.replace(/\s/g,''));
-        });
-      });
-    }
-    if(ANALYSIS_FILTERS.name.length){
-      src=src.filter(r=>{
-        const val=(r.n||'').toLowerCase();
-        return ANALYSIS_FILTERS.name.some(f=>val.includes(f.toLowerCase()));
+    // 필터 적용
+    let src = ALL_DATA;
+    if(curAnalysisFilter){
+      const f = curAnalysisFilter;
+      const kw = f.keyword.toLowerCase();
+      const excl = f.exclude ? f.exclude.toLowerCase() : null;
+      src = ALL_DATA.filter(r => {
+        // 필드별 검색
+        let target = '';
+        if(f.field === 'type'){
+          target = (r.t||'').toLowerCase();
+        }else if(f.field === 'region'){
+          target = (r.r||'').toLowerCase();
+        }else{
+          // 'any' - 지역/판매구분/고객명 모두 검색
+          target = ((r.r||'')+' '+(r.t||'')+' '+(r.n||'')).toLowerCase();
+        }
+        // 키워드 포함 확인
+        if(!target.includes(kw)) return false;
+        // 제외 키워드 있으면 확인
+        if(excl && target.includes(excl)) return false;
+        return true;
       });
     }
 
@@ -1341,7 +1403,7 @@ function runAnalysis(){
       map[key].qty+=qty;
     });
 
-    // 정렬 (시간 내림차순)
+    // 정렬 (시간 내림차순, 최근이 위)
     let rows=Object.values(map);
     if(curPeriod!=='all'){
       rows.sort((a,b)=>b.key.localeCompare(a.key));
@@ -1359,12 +1421,7 @@ function runAnalysis(){
       tbody+=`<tr><td>${escapeHtml(label)}</td><td class="amt"${r.amt<0?' style="color:#2563eb"':''}>${amtStr}</td><td class="qty">${r.qty.toLocaleString()}</td></tr>`;
     });
 
-    // 필터 요약 (상태바용)
-    const filterParts=[];
-    if(ANALYSIS_FILTERS.region.length)filterParts.push('🌍'+ANALYSIS_FILTERS.region.join(','));
-    if(ANALYSIS_FILTERS.type.length)filterParts.push('🏷️'+ANALYSIS_FILTERS.type.join(','));
-    if(ANALYSIS_FILTERS.name.length)filterParts.push('👤'+ANALYSIS_FILTERS.name.join(','));
-    const filterInfo=filterParts.length?' · '+filterParts.join(' / '):' · 전체';
+    const filterInfo=curAnalysisFilter?` · ${curAnalysisFilter.label}`:' · 전체';
     const totalStr=totalAmt<0?'-'+Math.abs(totalAmt).toLocaleString()+'원':totalAmt.toLocaleString()+'원';
 
     res.innerHTML=rows.length?`<table class="atable">
@@ -1505,9 +1562,9 @@ qEl.addEventListener('compositionstart',()=>qc=true);
 qEl.addEventListener('compositionend',()=>qc=false);
 qEl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!qc)doSearch();});
 
-// 분석 필터 3개 (지역/판매구분/고객명) - Enter 키로 추가
-['region','type','name'].forEach(kind => {
-  const el = document.getElementById(kind + 'Search');
+// 분석 검색창 - Enter 키로 검색
+(function(){
+  const el = document.getElementById('freeSearch');
   if(!el) return;
   let composing = false;
   el.addEventListener('compositionstart', () => composing = true);
@@ -1515,10 +1572,10 @@ qEl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!qc)doSearch();});
   el.addEventListener('keydown', e => {
     if(e.key === 'Enter' && !composing){
       e.preventDefault();
-      addFilter(kind);
+      applyFreeSearch();
     }
   });
-});
+})();
 
 // 화면 다시 활성화 시 백그라운드 동기화 (검색 결과는 유지!)
 document.addEventListener('visibilitychange', () => {
