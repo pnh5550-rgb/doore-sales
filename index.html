@@ -248,6 +248,20 @@ body{
 .filter-input:focus{border-color:var(--p)}
 .filter-add-btn{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(109,40,217,0.2)}
 .filter-add-btn:active{transform:scale(0.95)}
+/* 검색 결과 아래 드릴다운 태그 */
+.analysis-drill-wrap{margin-top:14px;padding:12px;background:#faf9ff;border-radius:12px;border:1.5px solid var(--pb)}
+.analysis-drill-title{font-size:12px;color:var(--m);font-weight:700;margin-bottom:8px}
+.analysis-drill-row{margin-bottom:8px;line-height:1.9}
+.analysis-drill-row:last-child{margin-bottom:0}
+.analysis-drill-label{font-size:12px;font-weight:800;color:var(--td);margin-right:6px;display:inline-block}
+.analysis-drill-tag{display:inline-block;padding:4px 11px;border-radius:14px;font-weight:800;font-size:12px;cursor:pointer;margin-right:4px;margin-bottom:3px;transition:all 0.15s}
+.analysis-drill-tag.region{background:#dbeafe;color:#2563eb;border:1.5px solid #93c5fd}
+.analysis-drill-tag.region:hover{background:#bfdbfe}
+.analysis-drill-tag.type{background:#fef3c7;color:#a16207;border:1.5px solid #fcd34d}
+.analysis-drill-tag.type:hover{background:#fde68a}
+.analysis-drill-tag.name{background:var(--ps);color:var(--p);border:1.5px solid var(--pb)}
+.analysis-drill-tag.name:hover{background:var(--pb)}
+.analysis-drill-tag:active{transform:scale(0.95)}
 .cat-label{font-size:13px;font-weight:800;color:var(--td);margin-bottom:8px;letter-spacing:0.02em}
 .seg-wrap{display:flex;background:var(--ps);border-radius:14px;padding:4px;margin-bottom:16px}
 .seg-btn{flex:1;padding:11px 4px;font-size:14px;font-weight:800;color:var(--m);border:none;background:none;border-radius:11px;cursor:pointer}
@@ -404,7 +418,7 @@ body{
         <div id="searchInputPanel" class="cat-panel hidden">
           <div class="cat-panel-title">🔍 지역 · 판매구분 · 고객명 검색</div>
           <div class="filter-input-row">
-            <input type="text" id="freeSearch" class="filter-input" placeholder="검색어 입력 (예: 포천, 본사, 신득호)" autocomplete="off"/>
+            <input type="text" id="freeSearch" class="filter-input" placeholder="검색어 (예: 평택 신득호, 본사 포천)" autocomplete="off"/>
             <button class="filter-add-btn" onclick="applyFreeSearch()">검색</button>
           </div>
           <div class="cat-panel-hint" id="freeSearchHint"></div>
@@ -1306,16 +1320,25 @@ function applyFreeSearch(){
     setTimeout(()=>{el.style.borderColor='';},600);
     return;
   }
+  // 공백으로 나눠서 여러 단어 각각 매칭 (AND)
   curAnalysisFilter = {
     label: val,
     keyword: val,
     exclude: null,
-    field: 'any'  // 지역/판매구분/고객명 모두 검색
+    field: 'any',  // 지역/판매구분/고객명 모두 검색
+    terms: val.toLowerCase().split(/\s+/).filter(Boolean)  // 여러 단어 지원
   };
   runAnalysis();
   // 힌트 업데이트
   const hint = document.getElementById('freeSearchHint');
-  if(hint) hint.textContent = `💡 "${val}" 이 포함된 지역/판매구분/고객명 모두 검색`;
+  if(hint){
+    const termCount = curAnalysisFilter.terms.length;
+    if(termCount>1){
+      hint.textContent = `💡 ${termCount}개 조건 모두 매칭 (지역/판매구분/고객명)`;
+    }else{
+      hint.textContent = `💡 "${val}" 이 포함된 지역/판매구분/고객명 모두 검색`;
+    }
+  }
 }
 
 function clearAnalysisFilter(){
@@ -1334,6 +1357,16 @@ function switchPeriod(p){
   runAnalysis();
 }
 
+// 검색 결과의 태그 클릭 → 현재 검색어에 추가하여 재검색
+function drillDownAnalysis(term){
+  const el = document.getElementById('freeSearch');
+  const cur = (el.value||'').trim();
+  // 이미 있으면 무시
+  if(cur.toLowerCase().split(/\s+/).includes(term.toLowerCase())) return;
+  el.value = cur ? (cur+' '+term) : term;
+  applyFreeSearch();
+}
+
 function runAnalysis(){
   const st=document.getElementById('aStatus');
   const res=document.getElementById('analysisResult');
@@ -1345,10 +1378,11 @@ function runAnalysis(){
     let src = ALL_DATA;
     if(curAnalysisFilter){
       const f = curAnalysisFilter;
-      const kw = f.keyword.toLowerCase();
       const excl = f.exclude ? f.exclude.toLowerCase() : null;
+      // 여러 단어 지원: terms 배열이 있으면 각 단어 모두 매칭 (AND)
+      const terms = f.terms && f.terms.length ? f.terms : [f.keyword.toLowerCase()];
       src = ALL_DATA.filter(r => {
-        // 필드별 검색
+        // 필드별 검색 대상
         let target = '';
         if(f.field === 'type'){
           target = (r.t||'').toLowerCase();
@@ -1358,8 +1392,8 @@ function runAnalysis(){
           // 'any' - 지역/판매구분/고객명 모두 검색
           target = ((r.r||'')+' '+(r.t||'')+' '+(r.n||'')).toLowerCase();
         }
-        // 키워드 포함 확인
-        if(!target.includes(kw)) return false;
+        // 모든 단어가 포함되어야 함 (AND)
+        if(!terms.every(t => target.includes(t))) return false;
         // 제외 키워드 있으면 확인
         if(excl && target.includes(excl)) return false;
         return true;
@@ -1408,11 +1442,39 @@ function runAnalysis(){
     const filterInfo=curAnalysisFilter?` · ${curAnalysisFilter.label}`:' · 전체';
     const totalStr=totalAmt<0?'-'+Math.abs(totalAmt).toLocaleString()+'원':totalAmt.toLocaleString()+'원';
 
-    res.innerHTML=rows.length?`<table class="atable">
+    // 검색 카테고리이고 결과가 있을 때, 발견된 지역/판매구분/고객명 태그 추가 표시
+    let extraTagsHtml='';
+    if(curAnalysisCat==='search' && curAnalysisFilter && src.length>0){
+      const foundRegions = new Set();
+      const foundTypes = new Set();
+      const foundNames = new Set();
+      const existingTerms = (curAnalysisFilter.terms||[]).map(t=>t.toLowerCase());
+      src.forEach(r=>{
+        if(r.r) foundRegions.add(String(r.r).trim());
+        if(r.t) foundTypes.add(String(r.t).trim());
+        if(r.n) foundNames.add(String(r.n).trim());
+      });
+      // 이미 검색어에 있는 것은 제외
+      const filterUnused = arr => arr.filter(v => !existingTerms.some(t => v.toLowerCase().includes(t)));
+      const regions = filterUnused([...foundRegions]).slice(0,10);
+      const types = filterUnused([...foundTypes]).slice(0,8);
+      const names = filterUnused([...foundNames]).slice(0,10);
+      const makeTag=(v,kind)=>`<span class="analysis-drill-tag ${kind}" onclick="drillDownAnalysis('${escapeHtml(v).replace(/'/g,"\\'")}')">${escapeHtml(v)}</span>`;
+      if(regions.length||types.length||names.length){
+        extraTagsHtml=`<div class="analysis-drill-wrap">
+          <div class="analysis-drill-title">👇 눌러서 조건 더 좁히기</div>
+          ${regions.length?`<div class="analysis-drill-row"><span class="analysis-drill-label">📍 지역</span>${regions.map(v=>makeTag(v,'region')).join('')}</div>`:''}
+          ${types.length?`<div class="analysis-drill-row"><span class="analysis-drill-label">🏷️ 판매구분</span>${types.map(v=>makeTag(v,'type')).join('')}</div>`:''}
+          ${names.length?`<div class="analysis-drill-row"><span class="analysis-drill-label">👤 고객명</span>${names.map(v=>makeTag(v,'name')).join('')}</div>`:''}
+        </div>`;
+      }
+    }
+
+    res.innerHTML=(rows.length?`<table class="atable">
       <thead><tr><th>${colLabel}${subtitle}</th><th class="amt">판매금액</th><th class="qty">수량</th></tr></thead>
       <tbody>${tbody}</tbody>
       <tfoot><tr class="total-row"><td>합계</td><td class="amt"${totalAmt<0?' style="color:#2563eb"':''}>${totalStr}</td><td class="qty">${totalQty.toLocaleString()}</td></tr></tfoot>
-    </table>`:'<div class="nores">해당 데이터가 없습니다.</div>';
+    </table>`:'<div class="nores">해당 데이터가 없습니다.</div>')+extraTagsHtml;
 
     st.style.color='var(--g)';
     st.textContent=`✅ ${rows.length}건 · ${totalStr}${filterInfo}`;
