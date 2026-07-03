@@ -238,19 +238,16 @@ body{
 .major-region-item{background:white;color:var(--t);border:2px solid var(--pb);border-radius:10px;padding:11px 14px;font-size:14px;font-weight:700;cursor:pointer;text-align:left;transition:all 0.15s;font-family:inherit}
 .major-region-item:hover{background:var(--ps);border-color:var(--pl)}
 .major-region-item:active{transform:scale(0.98)}
-.major-region-item.selected{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border-color:var(--p)}
+.major-region-item.selected{background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:var(--p);border-color:var(--pl);font-weight:900;cursor:default}
+.major-region-back{text-align:center;font-size:13px;color:var(--p);font-weight:700;padding:8px;cursor:pointer;margin-top:6px;border-radius:8px;background:transparent}
+.major-region-back:hover{background:var(--ps)}
+.major-region-back:active{transform:scale(0.98)}
 /* 검색 입력창 */
 .filter-input-row{display:flex;gap:6px}
 .filter-input{flex:1;font-size:14px;padding:10px 12px;border:2px solid var(--pb);border-radius:10px;outline:none;background:white;color:var(--t);font-weight:600;min-width:0}
 .filter-input:focus{border-color:var(--p)}
 .filter-add-btn{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:800;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(109,40,217,0.2)}
 .filter-add-btn:active{transform:scale(0.95)}
-/* 현재 조건 표시 바 */
-.current-filter-bar{display:flex;align-items:center;gap:8px;background:#ecfccb;border:1.5px solid #84cc16;border-radius:10px;padding:9px 12px;margin-top:10px;flex-wrap:wrap}
-.current-filter-label{font-size:12px;font-weight:800;color:#4d7c0f;flex-shrink:0}
-#currentFilterValue{font-size:13px;font-weight:900;color:#365314;flex:1;min-width:0;word-break:break-all}
-.current-filter-clear{background:#65a30d;color:white;border:none;border-radius:12px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0}
-.current-filter-clear:active{background:#4d7c0f}
 .cat-label{font-size:13px;font-weight:800;color:var(--td);margin-bottom:8px;letter-spacing:0.02em}
 .seg-wrap{display:flex;background:var(--ps);border-radius:14px;padding:4px;margin-bottom:16px}
 .seg-btn{flex:1;padding:11px 4px;font-size:14px;font-weight:800;color:var(--m);border:none;background:none;border-radius:11px;cursor:pointer}
@@ -411,13 +408,6 @@ body{
             <button class="filter-add-btn" onclick="applyFreeSearch()">검색</button>
           </div>
           <div class="cat-panel-hint" id="freeSearchHint"></div>
-        </div>
-
-        <!-- 현재 적용 필터 표시 -->
-        <div id="currentFilterBar" class="current-filter-bar hidden">
-          <span class="current-filter-label">현재 조건:</span>
-          <span id="currentFilterValue"></span>
-          <button class="current-filter-clear" onclick="clearAnalysisFilter()">✕ 해제</button>
         </div>
 
         <!-- 기간 -->
@@ -1248,7 +1238,7 @@ const MAJOR_REGIONS = [
   {label:'가평', keyword:'가평'},
   {label:'평창', keyword:'평창'},
   {label:'강북종묘사', keyword:'강북종묘사'},
-  {label:'서청주 정봉지점', keyword:'서청주 정봉'},
+  {label:'서청주농협 정봉지점', keyword:'서청주농협 정봉'},
   {label:'정명바이오', keyword:'정명바이오'},
   {label:'화천농협 사내지점', keyword:'화천농협 사내'},
   {label:'네이버 (판매구분)', keyword:'네이버', field:'type'}
@@ -1281,10 +1271,18 @@ function switchAnalysisCat(cat){
 function renderMajorRegionList(){
   const cont = document.getElementById('majorRegionList');
   if(!cont) return;
-  cont.innerHTML = MAJOR_REGIONS.map((r,i) => {
-    const isSel = curAnalysisFilter && curAnalysisFilter.label === r.label;
-    return `<button class="major-region-item${isSel?' selected':''}" onclick="selectMajorRegion(${i})">${escapeHtml(r.label)}</button>`;
-  }).join('');
+  // 선택된 항목이 있으면 그것만 표시, 없으면 전체 목록
+  if(curAnalysisFilter){
+    const idx = MAJOR_REGIONS.findIndex(r => r.label === curAnalysisFilter.label);
+    if(idx >= 0){
+      cont.innerHTML = `<button class="major-region-item selected" onclick="clearAnalysisFilter()">${escapeHtml(MAJOR_REGIONS[idx].label)}</button>
+        <div class="major-region-back" onclick="clearAnalysisFilter()">↺ 다시 선택하기</div>`;
+      return;
+    }
+  }
+  cont.innerHTML = MAJOR_REGIONS.map((r,i) =>
+    `<button class="major-region-item" onclick="selectMajorRegion(${i})">${escapeHtml(r.label)}</button>`
+  ).join('');
 }
 
 function selectMajorRegion(idx){
@@ -1297,7 +1295,6 @@ function selectMajorRegion(idx){
     field: r.field || 'region'
   };
   renderMajorRegionList();
-  showCurrentFilter();
   runAnalysis();
 }
 
@@ -1315,7 +1312,6 @@ function applyFreeSearch(){
     exclude: null,
     field: 'any'  // 지역/판매구분/고객명 모두 검색
   };
-  showCurrentFilter();
   runAnalysis();
   // 힌트 업데이트
   const hint = document.getElementById('freeSearchHint');
@@ -1324,24 +1320,12 @@ function applyFreeSearch(){
 
 function clearAnalysisFilter(){
   curAnalysisFilter = null;
-  document.getElementById('currentFilterBar').classList.add('hidden');
   const hint = document.getElementById('freeSearchHint');
   if(hint) hint.textContent = '';
   const freeEl = document.getElementById('freeSearch');
   if(freeEl) freeEl.value = '';
   renderMajorRegionList();
   runAnalysis();
-}
-
-function showCurrentFilter(){
-  const bar = document.getElementById('currentFilterBar');
-  const val = document.getElementById('currentFilterValue');
-  if(!curAnalysisFilter){
-    bar.classList.add('hidden');
-    return;
-  }
-  val.textContent = curAnalysisFilter.label;
-  bar.classList.remove('hidden');
 }
 
 function switchPeriod(p){
