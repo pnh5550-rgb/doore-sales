@@ -164,6 +164,11 @@ body{
 .region-tag:hover{background:#bfdbfe}
 .region-tag:active{transform:scale(0.95)}
 .region-tag::before{content:'📍 ';font-size:11px}
+/* 고객명 태그 (클릭해서 필터) */
+.name-tag{display:inline-block;background:var(--ps);color:var(--p);padding:4px 12px;border-radius:14px;margin-right:5px;margin-bottom:5px;font-weight:800;cursor:pointer;font-size:13px;transition:all 0.15s;border:1.5px solid var(--pb)}
+.name-tag:hover{background:var(--pb)}
+.name-tag:active{transform:scale(0.95)}
+.name-tag::before{content:'👤 ';font-size:11px}
 /* 페이지 가로 스크롤 (최근 거래 ↔ 고객관리) */
 .ritem-pages{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;gap:24px}
 .ritem-pages::-webkit-scrollbar{display:none}
@@ -612,6 +617,15 @@ function filterByRegion(el,regionName){
   qEl.value=q?(q+' '+regionName):regionName;
   doSearch();
   // 검색창까지 스크롤
+  qEl.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// 고객명 태그 클릭 → 그 고객명으로 재검색
+function filterByName(el,customerName){
+  const qEl=document.getElementById('q');
+  // 고객명은 검색어를 완전히 대체 (더 좁게 검색)
+  qEl.value=customerName;
+  doSearch();
   qEl.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
@@ -1118,8 +1132,9 @@ function renderCard(c,perms,searchQuery){
   }
 
   const relatedNamesHtml=(c.relatedNames&&c.relatedNames.length>1)
-    ?`<div style="font-size:13px;color:var(--td);margin-top:6px;font-weight:700;line-height:1.5">
-        🔍 포함: ${c.relatedNames.slice(0,5).map(n=>`<span style="background:var(--ps);color:var(--p);padding:2px 8px;border-radius:10px;margin-right:4px;display:inline-block;margin-bottom:3px;font-weight:800">${escapeHtml(n)}</span>`).join('')}${c.relatedNames.length>5?` <span style="color:var(--m)">외 ${c.relatedNames.length-5}명</span>`:''}
+    ?`<div style="font-size:13px;color:var(--td);margin-top:8px;font-weight:700;line-height:1.5">
+        <div style="font-size:12px;color:var(--m);margin-bottom:4px;font-weight:700">👇 고객명을 눌러 좁혀서 검색</div>
+        ${c.relatedNames.slice(0,20).map(n=>`<span class="name-tag" onclick="filterByName(this,'${escapeHtml(n).replace(/'/g,"\\'")}')">${escapeHtml(n)}</span>`).join('')}${c.relatedNames.length>20?` <span style="color:var(--m);font-weight:600">외 ${c.relatedNames.length-20}명</span>`:''}
       </div>`
     :'';
 
