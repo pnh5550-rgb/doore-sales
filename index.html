@@ -13,6 +13,15 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjQwIiBmaWxsPSIjNmQyOGQ5Ii8+PHRleHQgeD0iOTYiIHk9IjEyOCIgZm9udC1zaXplPSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPvCfk4g8L3RleHQ+PC9zdmc+">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjQwIiBmaWxsPSIjNmQyOGQ5Ii8+PHRleHQgeD0iOTYiIHk9IjEyOCIgZm9udC1zaXplPSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPvCfk4g8L3RleHQ+PC9zdmc+">
 
+<!-- 즉시 실행: 세션 존재 여부로 화면 미리 결정 (2초 흰 화면 방지) -->
+<script>
+  try {
+    if (localStorage.getItem('pm_session_fb_v1')) {
+      document.documentElement.classList.add('has-session');
+    }
+  } catch(e) {}
+</script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 html,body{height:100%;overflow-x:hidden}
@@ -159,6 +168,8 @@ body{
 .kw-highlight{font-weight:900;color:var(--p);background:rgba(109,40,217,0.08);padding:0 3px;border-radius:3px}
 .kw-highlight-pink{font-weight:900;color:#db2777;background:rgba(244,114,182,0.22);padding:0 3px;border-radius:3px}
 .kw-highlight-blue{font-weight:900;color:#2563eb;background:rgba(59,130,246,0.15);padding:0 3px;border-radius:3px}
+.kw-highlight-red{font-weight:900;color:#dc2626;background:rgba(239,68,68,0.18);padding:0 3px;border-radius:3px}
+.kw-highlight-orange{font-weight:900;color:#ea580c;background:rgba(251,146,60,0.22);padding:0 3px;border-radius:3px}
 /* 지역 태그 (클릭해서 필터) */
 .region-tag{display:inline-block;background:#dbeafe;color:#2563eb;padding:4px 12px;border-radius:14px;margin-right:5px;margin-bottom:5px;font-weight:800;cursor:pointer;font-size:13px;transition:all 0.15s;border:1.5px solid #93c5fd}
 .region-tag:hover{background:#bfdbfe}
@@ -332,11 +343,17 @@ body{
 .spin{display:inline-block;width:14px;height:14px;border:2.5px solid var(--pb);border-top-color:var(--p);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none!important}
+
+/* 세션 유무에 따라 초기 화면 결정 (JS 실행 전에 표시 - 흰 화면 방지) */
+#loginPage,#mainPage{display:none}
+html:not(.has-session) #loginPage{display:block}
+html.has-session #mainPage{display:block}
+#loginPage.hidden,#mainPage.hidden{display:none!important}
 </style>
 </head>
 <body>
 
-<div id="loginPage" class="hidden">
+<div id="loginPage">
   <div class="login-wrap">
     <div class="login-box">
       <div class="login-logo">📈</div>
@@ -354,7 +371,7 @@ body{
   </div>
 </div>
 
-<div id="mainPage" class="hidden">
+<div id="mainPage">
   <div class="header" id="mainHeader">
     <div class="hrow">
       <div class="htitle">📈 판매관리현황
@@ -583,10 +600,13 @@ function cleanBigo(text){
 // class 지정: 보라색='kw-highlight', 핑크색='kw-highlight-pink'
 const BOLD_KEYWORDS = [
   {keyword:'관리요령 전송', class:'kw-highlight'},
-  {keyword:'클레임', class:'kw-highlight'},
+  {keyword:'클레임', class:'kw-highlight-red'},
   {keyword:'지원수량 마감', class:'kw-highlight'},
   {keyword:'미사용', class:'kw-highlight-blue'},
-  {keyword:'☆두레', class:'kw-highlight-pink'}
+  {keyword:'입금요청', class:'kw-highlight-pink'},
+  {keyword:'서비스', class:'kw-highlight-pink'},
+  {keyword:'☆두레', class:'kw-highlight-orange'},
+  {keyword:'☆ 두레', class:'kw-highlight-orange'}
 ];
 function highlightKeywords(escapedText){
   if(!escapedText)return escapedText;
@@ -676,6 +696,7 @@ async function doLogin(){
     if(String(u.pw) !== pw) throw new Error('아이디 또는 비밀번호가 틀렸습니다.');
     CU = {id:id, pw:pw, name:u.name, perms:u.perms||'', isAdmin:!!u.isAdmin};
     localStorage.setItem(SESSION_KEY, JSON.stringify(CU));
+    document.documentElement.classList.add('has-session');
     showBar(50, '판매 데이터 불러오는 중...');
     await loadDataFromServer();
     showBar(100, '완료!');
@@ -842,7 +863,8 @@ function fixTabBar(){
   if(h&&t)t.style.top=h.offsetHeight+'px';
 }
 
-function showMain(){
+// 1단계: 즉시 헤더/UI만 표시 (데이터 없이도)
+function showMainShell(){
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('mainPage').classList.remove('hidden');
   document.getElementById('uname').textContent=CU.id;
@@ -852,19 +874,32 @@ function showMain(){
   }
   if(CU.isAdmin){
     document.getElementById('adminTab').classList.remove('hidden');
-    loadUsers();
   }
   const labels={all:'전체권한',판매금액:'판매금액',미수금액:'미수금액',비고:'비고',happycall:'고객메모',입금액:'입금액',입금방법:'입금방법',입금일자:'입금일자',analysis:'판매분석'};
   document.getElementById('permBar').innerHTML=perms.map(p=>`<span class="ptag">✓ ${labels[p]||p}</span>`).join('');
-  setTimeout(fixTabBar,100);
-  if(ALL_DATA.length>0)updateInfo();
+  setTimeout(fixTabBar,50);
+}
 
+// 2단계: 데이터 로드 후 결과/탭 복원 (무거운 작업)
+function finishMain(){
+  if(ALL_DATA.length>0)updateInfo();
   // 마지막 탭 복원
   const lastTab = localStorage.getItem(LAST_TAB_KEY) || 'search';
-  switchTab(lastTab, true);  // true = 검색 결과 보존
+  switchTab(lastTab, true);
+  // 마지막 검색 결과 복원 (한 프레임 더 지연 - 화면 표시 우선)
+  requestAnimationFrame(() => {
+    restoreLastSearch();
+    // 관리자면 사용자 목록 로드 (완전히 마지막)
+    if(CU.isAdmin){
+      setTimeout(() => loadUsers(), 300);
+    }
+  });
+}
 
-  // 마지막 검색 결과 복원
-  restoreLastSearch();
+// 로그인 후 호출용 (기존 호환)
+function showMain(){
+  showMainShell();
+  finishMain();
 }
 
 function renderWelcome(){
@@ -935,6 +970,7 @@ function logout(){
   localStorage.removeItem(LAST_SEARCH_KEY);  // 검색 기록도 삭제
   localStorage.removeItem(LAST_TAB_KEY);
   CU=null;ALL_DATA=[];WARNINGS=[];META=null;
+  document.documentElement.classList.remove('has-session');
   document.getElementById('loginPage').classList.remove('hidden');
   document.getElementById('mainPage').classList.add('hidden');
   document.getElementById('loginId').value='';
@@ -1179,7 +1215,7 @@ function renderCard(c,perms,searchQuery){
         if(has('미수금액')){
           if(unpaid>0)bdg='<span class="badge unpaid">미수</span>';
           else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
-          else bdg='<span class="badge paid">완납</span>';
+          else if(amt!==0)bdg='<span class="badge paid">완납</span>';
         }
         // 선입금만 받은 거래 (판매금액 0이고 미수금액 음수)일 때, 판매금액 자리에 입금액 표시
         const isPrepayOnly=amt===0&&unpaid<0;
@@ -1667,7 +1703,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ═══════════════════════════════════════════
-// 세션 자동 복원
+// 세션 자동 복원 (즉시 화면 표시 + 지연 데이터 로드)
 // ═══════════════════════════════════════════
 (async function(){
   let restored=false;
@@ -1676,30 +1712,43 @@ document.addEventListener('visibilitychange', () => {
     if(saved){
       CU=JSON.parse(saved);
       if(CU&&CU.id&&CU.pw&&CU.name){
-        const hasCache = loadFromCacheOnly();
-        if(hasCache){
-          showMain();
-          restored=true;
-          setTimeout(() => backgroundSync(), 500);
-        } else {
-          try {
-            await loadDataFromServer();
-            showMain();
-            restored=true;
-          } catch(e) {
-            console.error('첫 데이터 로드 실패:', e);
-            localStorage.removeItem(SESSION_KEY);
+        // 1단계: 즉시 헤더/UI만 먼저 표시 (데이터 파싱 전에)
+        showMainShell();
+        restored=true;
+
+        // 2단계: 다음 프레임에 캐시 데이터 로드/파싱 (화면 이미 보이는 상태)
+        requestAnimationFrame(async () => {
+          const hasCache = loadFromCacheOnly();
+          if(hasCache){
+            // 캐시 있음 → 즉시 표시하고 백그라운드 동기화
+            finishMain();
+            setTimeout(() => backgroundSync(), 500);
+          } else {
+            // 캐시 없음 → 서버에서 로드
+            try {
+              await loadDataFromServer();
+              finishMain();
+            } catch(e) {
+              console.error('첫 데이터 로드 실패:', e);
+              localStorage.removeItem(SESSION_KEY);
+              document.documentElement.classList.remove('has-session');
+              document.getElementById('mainPage').classList.add('hidden');
+              document.getElementById('loginPage').classList.remove('hidden');
+            }
           }
-        }
+        });
       }else{
         localStorage.removeItem(SESSION_KEY);
+        document.documentElement.classList.remove('has-session');
       }
     }
   }catch(e){
     console.warn('세션 복원 실패:',e);
     localStorage.removeItem(SESSION_KEY);
+    document.documentElement.classList.remove('has-session');
   }
   if(!restored){
+    // 세션 없음 → 로그인 페이지 표시 (CSS가 이미 처리)
     document.getElementById('loginPage').classList.remove('hidden');
   }
 })();
