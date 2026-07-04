@@ -205,6 +205,7 @@ body{
 .ritem-hcall-more:active{transform:scale(0.95);background:var(--ps)}
 .ritem-hcall-more .arrow{font-size:14px;transition:transform 0.2s;display:inline-block;font-weight:900;line-height:1}
 .rqty{color:var(--t);font-size:17px;font-weight:900;min-width:36px;text-align:center}
+.rtype{color:var(--td);font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
 .ramt{font-weight:900;font-size:17px;flex:1;text-align:right;color:var(--t)}
 .ramt.neg{color:var(--g)}
 .ramt.prepay{color:#2563eb}
@@ -1196,6 +1197,7 @@ function renderCard(c,perms,searchQuery){
           <div class="ritem-main-row">
             <span class="rdate">${r.d||'-'}</span>
             <span class="rqty">${r.q||'-'}</span>
+            <span class="rtype">${r.t?escapeHtml(r.t):'-'}</span>
             ${has('판매금액')?`<span class="ramt${amtClass}">${fa(displayAmt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
             ${bdg}
           </div>
