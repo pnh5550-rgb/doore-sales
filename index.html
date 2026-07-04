@@ -1044,13 +1044,25 @@ function doSearch(){
     const allNames=new Set();
     const allRegions=new Set();
     filtered.forEach(r=>{
-      if(r.n)allNames.add(r.n);
-      if(r.r)allRegions.add(r.r);
+      const n=String(r.n||'').trim();
+      const rg=String(r.r||'').trim();
+      if(n)allNames.add(n);
+      if(rg)allRegions.add(rg);
     });
 
-    const cardTitle=q;
     const namesArr=[...allNames];
     const regionsArr=[...allRegions];
+
+    // 카드 제목: 매칭된 실제 고객명 사용 (검색어가 아닌 실제 이름)
+    let cardTitle;
+    if(namesArr.length===0){
+      cardTitle=q;  // 매칭된 고객명 없음 (거의 발생 안함)
+    }else if(namesArr.length===1){
+      cardTitle=namesArr[0];  // 고객명 1개면 그 이름 그대로
+    }else{
+      // 여러 명: 대표 이름 + 외 N명
+      cardTitle=namesArr[0]+` 외 ${namesArr.length-1}명`;
+    }
 
     const sortedRecords=[...filtered].sort((a,b)=>{
       const da=dateNum(a.d);
