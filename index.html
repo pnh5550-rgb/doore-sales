@@ -154,6 +154,8 @@ body{
 .ritem:last-child{border-bottom:none}
 .rdate{color:var(--td);font-size:15px;font-weight:800;min-width:90px}
 .ritem-main-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#f2eefd;padding:6px 8px}
+.ritem-main-row.bg-service{background:#d1fae5}
+.ritem-main-row.bg-delay{background:#dbeafe}
 .ritem-empty{color:#ccc;font-weight:500}
 .rcrop{flex:1;min-width:0;font-size:13px;color:#4b5563;font-weight:600;line-height:1.5;word-break:break-all;text-align:right}
 .rregion{font-size:13px;color:#4b5563;font-weight:700;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
@@ -606,6 +608,9 @@ const BOLD_KEYWORDS = [
   {keyword:'클레임', class:'kw-highlight-red'},
   {keyword:'지원수량 마감', class:'kw-highlight'},
   {keyword:'미사용', class:'kw-highlight-blue'},
+  {keyword:'연기', class:'kw-highlight-blue'},
+  {keyword:'보류', class:'kw-highlight-blue'},
+  {keyword:'취소', class:'kw-highlight-blue'},
   {keyword:'입금요청', class:'kw-highlight-pink'},
   {keyword:'서비스', class:'kw-highlight-pink'},
   {keyword:'☆두레', class:'kw-highlight-orange'},
@@ -1232,8 +1237,18 @@ function renderCard(c,perms,searchQuery){
         const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
         const bigoText=hasBigo?cleanBigo(r.b):'';
         const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+
+        // 비고/작물상태 내용에 따른 배경 색상 결정
+        const combinedText=(bigoText||'')+' '+(cropTxt||'');
+        let mainRowClass='ritem-main-row';
+        if(/서비스/.test(combinedText)){
+          mainRowClass+=' bg-service';
+        }else if(/연기|보류|취소/.test(combinedText)){
+          mainRowClass+=' bg-delay';
+        }
+
         return `<li class="ritem">
-          <div class="ritem-main-row">
+          <div class="${mainRowClass}">
             <span class="rdate">${r.d||'-'}</span>
             <span class="rqty">${r.q||'-'}</span>
             <span class="rtype">${r.t?escapeHtml(r.t):'-'}</span>
