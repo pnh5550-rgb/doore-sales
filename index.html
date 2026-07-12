@@ -1191,7 +1191,7 @@ function renderCard(c,perms,searchQuery){
   const relatedNamesHtml=(c.relatedNames&&c.relatedNames.length>1)
     ?`<div style="font-size:13px;color:var(--td);margin-top:8px;font-weight:700;line-height:1.5">
         <div style="font-size:12px;color:var(--m);margin-bottom:4px;font-weight:700">👇 고객명을 눌러 좁혀서 검색</div>
-        ${c.relatedNames.slice(0,20).map(n=>`<span class="name-tag" onclick="filterByName(this,'${escapeHtml(n).replace(/'/g,"\\'")}')">${escapeHtml(n)}</span>`).join('')}${c.relatedNames.length>20?` <span style="color:var(--m);font-weight:600">외 ${c.relatedNames.length-20}명</span>`:''}
+        ${c.relatedNames.slice(0,20).map(n=>`<span class="name-tag" onclick="filterByName(this,'${escapeHtml(n).replace(/'/g,"\\'")}')">${highlightKeywords(escapeHtml(n))}</span>`).join('')}${c.relatedNames.length>20?` <span style="color:var(--m);font-weight:600">외 ${c.relatedNames.length-20}명</span>`:''}
       </div>`
     :'';
 
@@ -1207,7 +1207,7 @@ function renderCard(c,perms,searchQuery){
     <div class="card-header">
       <div class="avatar">${ini(c.name)}</div>
       <div class="cinfo">
-        <div class="cname">${escapeHtml(c.name)}<span class="cbadge">${recs.length}건</span></div>
+        <div class="cname">${highlightKeywords(escapeHtml(c.name))}<span class="cbadge">${recs.length}건</span></div>
         <div class="cregion">📍 <strong>${escapeHtml(c.region||'-')}</strong></div>
         ${relatedNamesHtml}
         ${relatedRegionsHtml}
@@ -1238,8 +1238,8 @@ function renderCard(c,perms,searchQuery){
         const bigoText=hasBigo?cleanBigo(r.b):'';
         const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
 
-        // 비고/작물상태 내용에 따른 배경 색상 결정
-        const combinedText=(bigoText||'')+' '+(cropTxt||'');
+        // 비고/작물상태/고객명 내용에 따른 배경 색상 결정
+        const combinedText=(bigoText||'')+' '+(cropTxt||'')+' '+(r.n||'');
         let mainRowClass='ritem-main-row';
         if(/서비스/.test(combinedText)){
           mainRowClass+=' bg-service';
