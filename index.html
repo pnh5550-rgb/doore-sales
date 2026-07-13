@@ -1239,12 +1239,15 @@ function renderCard(c,perms,searchQuery){
         const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
 
         // 비고/작물상태/고객명 내용에 따른 배경 색상 결정
+        // 금액이 0원인 경우만 특수 배경 적용 (실제 거래가 없는 예약/연기/취소 상태)
         const combinedText=(bigoText||'')+' '+(cropTxt||'')+' '+(r.n||'');
         let mainRowClass='ritem-main-row';
-        if(/서비스/.test(combinedText)){
-          mainRowClass+=' bg-service';
-        }else if(/연기|보류|취소/.test(combinedText)){
-          mainRowClass+=' bg-delay';
+        if(amt===0){
+          if(/서비스/.test(combinedText)){
+            mainRowClass+=' bg-service';
+          }else if(/연기|보류|취소/.test(combinedText)){
+            mainRowClass+=' bg-delay';
+          }
         }
 
         return `<li class="ritem">
