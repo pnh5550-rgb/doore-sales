@@ -283,6 +283,12 @@ body{
 .period-wrap{display:flex;gap:8px;margin-bottom:16px}
 .period-btn{flex:1;padding:12px 4px;font-size:14px;font-weight:800;color:var(--m);border:2px solid var(--pb);background:white;border-radius:12px;cursor:pointer}
 .period-btn.active{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border-color:var(--p);box-shadow:0 3px 10px rgba(109,40,217,0.2)}
+/* 일별 세부 옵션 */
+.day-range-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.day-range-btn{padding:8px 12px;font-size:13px;font-weight:800;color:var(--td);border:2px solid var(--pb);background:white;border-radius:10px;cursor:pointer;font-family:inherit;transition:all 0.15s}
+.day-range-btn:hover{background:var(--ps)}
+.day-range-btn.active{background:linear-gradient(135deg,var(--p),var(--pd));color:white;border-color:var(--p);box-shadow:0 2px 6px rgba(109,40,217,0.15)}
+.day-range-btn:active{transform:scale(0.97)}
 .sub-search-wrap{margin-bottom:14px}
 .sub-search{width:100%;font-size:16px;padding:13px 14px;border:2px solid var(--pb);border-radius:14px;outline:none;background:#f2eefd;margin-bottom:8px;color:var(--t);font-weight:600}
 .sub-search:focus{border-color:var(--p);background:var(--w)}
@@ -453,7 +459,24 @@ html.has-session #mainPage{display:block}
           <button class="period-btn active" onclick="switchPeriod('all')">전체</button>
           <button class="period-btn" onclick="switchPeriod('year')">연도별</button>
           <button class="period-btn" onclick="switchPeriod('month')">월별</button>
+          <button class="period-btn" onclick="switchPeriod('day')">일별</button>
         </div>
+
+        <!-- 일별 세부 선택 (일별 클릭 시에만 표시) -->
+        <div id="dayRangePanel" class="cat-panel hidden" style="margin-top:10px">
+          <div class="cat-panel-title">📅 일별 조회 범위</div>
+          <div class="day-range-wrap" id="dayRangeSeg">
+            <button class="day-range-btn active" onclick="switchDayRange('all')">전체</button>
+            <button class="day-range-btn" onclick="switchDayRange('30')">최근 30일</button>
+            <button class="day-range-btn" onclick="switchDayRange('90')">최근 90일</button>
+            <button class="day-range-btn" onclick="switchDayRange('thisMonth')">이번달</button>
+            <button class="day-range-btn" onclick="switchDayRange('specificMonth')">특정 월</button>
+          </div>
+          <div id="specificMonthWrap" class="hidden" style="margin-top:8px">
+            <select id="specificMonthSelect" class="filter-input" onchange="onSpecificMonthChange()"></select>
+          </div>
+        </div>
+
         <div class="status" id="aStatus"></div>
         <div class="atable-wrap" id="analysisResult"></div>
         <div id="analysisChart" style="margin-top:14px"></div>
@@ -1440,10 +1463,69 @@ function clearAnalysisFilter(){
   runAnalysis();
 }
 
+// 일별 조회 범위 상태
+let curDayRange = 'all';  // 'all' | '30' | '90' | 'thisMonth' | 'specificMonth'
+let curSpecificMonth = '';  // YYYY-MM 형식
+
 function switchPeriod(p){
   curPeriod=p;
-  document.querySelectorAll('#periodSeg .period-btn').forEach((b,i)=>b.classList.toggle('active',['all','year','month'][i]===p));
+  document.querySelectorAll('#periodSeg .period-btn').forEach((b,i)=>b.classList.toggle('active',['all','year','month','day'][i]===p));
+  const dayPanel = document.getElementById('dayRangePanel');
+  if(p === 'day'){
+    dayPanel.classList.remove('hidden');
+    // 특정 월 선택 목록 준비 (첫 실행 시)
+    populateSpecificMonthOptions();
+  }else{
+    dayPanel.classList.add('hidden');
+  }
   runAnalysis();
+}
+
+function switchDayRange(range){
+  curDayRange = range;
+  document.querySelectorAll('#dayRangeSeg .day-range-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['all','30','90','thisMonth','specificMonth'][i]===range);
+  });
+  const specWrap = document.getElementById('specificMonthWrap');
+  if(range === 'specificMonth'){
+    specWrap.classList.remove('hidden');
+    // 기본값 설정
+    if(!curSpecificMonth){
+      const sel = document.getElementById('specificMonthSelect');
+      if(sel.options.length > 0){
+        curSpecificMonth = sel.options[0].value;
+        sel.value = curSpecificMonth;
+      }
+    }
+  }else{
+    specWrap.classList.add('hidden');
+  }
+  runAnalysis();
+}
+
+function onSpecificMonthChange(){
+  const sel = document.getElementById('specificMonthSelect');
+  curSpecificMonth = sel.value;
+  runAnalysis();
+}
+
+// 데이터에 있는 모든 월을 특정 월 드롭다운에 채우기
+function populateSpecificMonthOptions(){
+  const sel = document.getElementById('specificMonthSelect');
+  if(!sel || sel.options.length > 0) return;  // 이미 채워져 있으면 skip
+  const months = new Set();
+  ALL_DATA.forEach(r => {
+    const ym = (r.d || '').substring(0, 7);
+    if(/^\d{4}-\d{2}$/.test(ym)) months.add(ym);
+  });
+  const sorted = [...months].sort().reverse();  // 최신이 위
+  sorted.forEach(ym => {
+    const opt = document.createElement('option');
+    opt.value = ym;
+    const [y, m] = ym.split('-');
+    opt.textContent = `${y}년 ${parseInt(m,10)}월`;
+    sel.appendChild(opt);
+  });
 }
 
 // 검색 결과의 태그 클릭 → 현재 검색어에 추가하여 재검색
@@ -1489,6 +1571,35 @@ function runAnalysis(){
       });
     }
 
+    // 일별 조회 시 날짜 범위 필터링
+    if(curPeriod === 'day'){
+      const today = new Date();
+      const todayStr = today.toISOString().substring(0,10);
+      const thisMonth = todayStr.substring(0,7);
+      let fromDate = '';
+      let toDate = '';
+      let matchMonth = '';
+      if(curDayRange === '30'){
+        const d = new Date(today);
+        d.setDate(d.getDate() - 30);
+        fromDate = d.toISOString().substring(0,10);
+      }else if(curDayRange === '90'){
+        const d = new Date(today);
+        d.setDate(d.getDate() - 90);
+        fromDate = d.toISOString().substring(0,10);
+      }else if(curDayRange === 'thisMonth'){
+        matchMonth = thisMonth;
+      }else if(curDayRange === 'specificMonth' && curSpecificMonth){
+        matchMonth = curSpecificMonth;
+      }
+      if(fromDate){
+        src = src.filter(r => (r.d||'') >= fromDate);
+      }
+      if(matchMonth){
+        src = src.filter(r => (r.d||'').substring(0,7) === matchMonth);
+      }
+    }
+
     // 기간별 집계
     const map={};
     const nowYM=new Date();
@@ -1504,7 +1615,13 @@ function runAnalysis(){
       const amt=pa(r.s);
       const qty=parseInt(String(r.q||'').replace(/[^0-9-]/g,''),10)||0;
 
-      const key=curPeriod==='all'?'전체':curPeriod==='year'?year:ym;
+      // 기간에 따른 key 결정
+      let key;
+      if(curPeriod==='all')key='전체';
+      else if(curPeriod==='year')key=year;
+      else if(curPeriod==='month')key=ym;
+      else key=d.substring(0,10);  // 일별: YYYY-MM-DD
+      if(!key)return;
       if(!map[key])map[key]={key:key,amt:0,qty:0};
       map[key].amt+=amt;
       map[key].qty+=qty;
@@ -1519,7 +1636,7 @@ function runAnalysis(){
     const totalAmt=rows.reduce((s,r)=>s+r.amt,0);
     const totalQty=rows.reduce((s,r)=>s+r.qty,0);
     const colLabel='기간';
-    const subtitle=curPeriod==='all'?'':curPeriod==='year'?' · 연도별':' · 월별';
+    const subtitle=curPeriod==='all'?'':curPeriod==='year'?' · 연도별':curPeriod==='month'?' · 월별':' · 일별';
 
     let tbody='';
     rows.forEach(r=>{
@@ -1603,7 +1720,7 @@ function drawBars(rows){
 
   // 차트 정렬: 시간 기준이면 오래된→최근 (왼쪽→오른쪽)
   let chartRows = [...rows];
-  const isTimeChart = curPeriod === 'month' || curPeriod === 'year';
+  const isTimeChart = curPeriod === 'month' || curPeriod === 'year' || curPeriod === 'day';
   if(isTimeChart){
     chartRows.sort((a,b)=>{
       const ap=a.key.split('||');
@@ -1621,7 +1738,7 @@ function drawBars(rows){
   wrap.innerHTML=`<div class="chart-bars">${chartRows.map((r,i)=>{
     const val=chartMode==='amt'?r.amt:r.qty;
     const h=Math.max(4,Math.round((Math.abs(val)/maxAbs)*150));
-    const lbl=curPeriod==='month'?r.key.replace(/^\d{4}-/,''):curPeriod==='year'?r.key+'년':'전체';
+    const lbl=curPeriod==='month'?r.key.replace(/^\d{4}-/,''):curPeriod==='year'?r.key+'년':curPeriod==='day'?r.key.substring(5):'전체';
     const bg=val<0?'linear-gradient(180deg,#93c5fd,#2563eb)':'linear-gradient(180deg,#a78bfa,#6d28d9)';
     return `<div class="chart-bar-col">
       <div class="chart-bar-val">${faShort(val)}</div>
