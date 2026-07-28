@@ -152,8 +152,8 @@ body{
 .rlist{list-style:none}
 .ritem{display:flex;flex-direction:column;padding:12px 0;border-bottom:1.5px solid var(--pb);gap:4px}
 .ritem:last-child{border-bottom:none}
-.rdate{color:var(--td);font-size:15px;font-weight:800;min-width:90px}
-.ritem-main-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#f2eefd;padding:6px 8px}
+.rdate{color:#1a1a2e;font-size:15px;font-weight:900;min-width:90px;flex-shrink:0}
+.ritem-main-row{display:flex;align-items:flex-start;gap:8px;background:#f2eefd;padding:6px 8px}
 .ritem-main-row.bg-service{background:#d1fae5}
 .ritem-main-row.bg-delay{background:#dbeafe}
 .ritem-empty{color:#ccc;font-weight:500}
@@ -212,9 +212,11 @@ body{
 .ritem-hcall-more:hover{background:var(--ps);box-shadow:0 2px 6px rgba(109,40,217,0.2)}
 .ritem-hcall-more:active{transform:scale(0.95);background:var(--ps)}
 .ritem-hcall-more .arrow{font-size:14px;transition:transform 0.2s;display:inline-block;font-weight:900;line-height:1}
-.rqty{color:var(--t);font-size:17px;font-weight:900;min-width:36px;text-align:center}
-.rtype{color:var(--td);font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
-.ramt{font-weight:900;font-size:17px;flex:1;text-align:right;color:var(--t)}
+.rqty{color:var(--t);font-size:17px;font-weight:900;min-width:30px;text-align:center;flex-shrink:0}
+.rtype{font-size:15px;flex:1;min-width:0;word-break:break-all;line-height:1.4}
+.ritem-amt-col{display:flex;flex-direction:column;align-items:flex-end;min-width:80px;flex-shrink:0;gap:2px}
+.ramt{font-weight:900;font-size:17px;text-align:right;color:var(--t);line-height:1.2}
+.rstatus{min-height:22px;display:flex;align-items:center;justify-content:flex-end}
 .ramt.neg{color:var(--g)}
 .ramt.prepay{color:#2563eb}
 .badge{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:800;white-space:nowrap}
@@ -1273,13 +1275,29 @@ function renderCard(c,perms,searchQuery){
           }
         }
 
+        // 판매구분 + 배송방식 조합 (배송방식이 있으면 · 로 연결)
+        const typeText=r.t?String(r.t).trim():'';
+        const dvText=r.dl?String(r.dl).trim():'';
+        let typeDvHtml='';
+        if(typeText&&dvText){
+          typeDvHtml=`<span style="color:#1a1a2e;font-weight:900">${escapeHtml(typeText)}</span> <span style="color:var(--m);font-weight:600">·</span> <span style="color:#374151;font-weight:500">${escapeHtml(dvText)}</span>`;
+        }else if(typeText){
+          typeDvHtml=`<span style="color:#1a1a2e;font-weight:900">${escapeHtml(typeText)}</span>`;
+        }else if(dvText){
+          typeDvHtml=`<span style="color:#374151;font-weight:500">${escapeHtml(dvText)}</span>`;
+        }else{
+          typeDvHtml='-';
+        }
+
         return `<li class="ritem">
           <div class="${mainRowClass}">
             <span class="rdate">${r.d||'-'}</span>
             <span class="rqty">${r.q||'-'}</span>
-            <span class="rtype">${r.t?escapeHtml(r.t):'-'}</span>
-            ${has('판매금액')?`<span class="ramt${amtClass}">${faNum(displayAmt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
-            ${bdg}
+            <span class="rtype">${typeDvHtml}</span>
+            <div class="ritem-amt-col">
+              ${has('판매금액')?`<span class="ramt${amtClass}">${faNum(displayAmt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
+              <div class="rstatus">${bdg}</div>
+            </div>
           </div>
           ${subRow}
           ${bigoRow}
