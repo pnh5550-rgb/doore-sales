@@ -204,6 +204,8 @@ html{background:#e9e4f5}
 .hitem:last-child{border-bottom:none}
 .hitem-date{font-size:15px;font-weight:800;color:var(--td);margin-bottom:4px}
 .hitem-text{font-size:15px;color:var(--t);line-height:1.6;font-weight:600;word-break:break-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:100%;width:100%}
+.daynote-text{font-size:15px;color:#374151;font-weight:700;line-height:1.55;word-break:break-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;max-width:100%;width:100%}
+.daynote-text.expanded{display:block;-webkit-line-clamp:unset;overflow:visible}
 .hitem-text.expanded{display:block;-webkit-line-clamp:unset;overflow:visible}
 /* 더보기 버튼 - 하얀 바탕 + 보라색 테두리 */
 .ritem-hcall-more{
@@ -577,6 +579,7 @@ const SESSION_KEY = 'pm_session_fb_v1';
 const WARN_KEY = 'pm_warn_fb_v1';
 const LAST_SEARCH_KEY = 'pm_last_search_v1';  // ← 마지막 검색어 저장
 const LAST_TAB_KEY = 'pm_last_tab_v1';  // ← 마지막 탭 저장
+const LAST_DATE_KEY = 'pm_last_date_v1';  // ← 마지막 선택 날짜 저장
 
 let CU = null, ALL_DATA = [], WARNINGS = [], META = null;
 let curPeriod = 'all', changePwTargetId = '', chartMode = 'amt';
@@ -835,6 +838,7 @@ async function backgroundSync(){
       updateInfo();
       // 검색 결과도 자동 갱신
       restoreLastSearch();
+      restoreLastDate();
       showBgToast();
     }
   }catch(e){
@@ -880,6 +884,7 @@ async function refreshData(){
     if(lastSearch){
       restoreLastSearch();
     }
+    restoreLastDate();
     btn.textContent='✅ 완료';
     setTimeout(()=>{btn.textContent='🔄 새로고침';btn.disabled=false;},1500);
   }catch(e){
@@ -950,6 +955,7 @@ function finishMain(){
   // 마지막 검색 결과 복원 (한 프레임 더 지연 - 화면 표시 우선)
   requestAnimationFrame(() => {
     restoreLastSearch();
+    restoreLastDate();
     // 관리자면 사용자 목록 로드 (완전히 마지막)
     if(CU.isAdmin){
       setTimeout(() => loadUsers(), 300);
@@ -1054,6 +1060,7 @@ function switchTab(tab, preserveSearch){
   localStorage.setItem(LAST_TAB_KEY, tab);
 
   if(tab==='analysis'&&ALL_DATA.length>0)runAnalysis();
+  if(tab==='date')setTimeout(()=>{refreshDayMore();syncRowHeights();},60);
 }
 
 // ═══════════════════════════════════════════
@@ -1116,6 +1123,7 @@ function doDateSearch(){
   }
 
   const target=dv.substring(0,10);
+  localStorage.setItem(LAST_DATE_KEY,target);
   const filtered=ALL_DATA.filter(r=>String(r.d||'').substring(0,10)===target);
 
   if(filtered.length===0){
@@ -1131,16 +1139,36 @@ function doDateSearch(){
   st.style.color='var(--g)';
   st.textContent=`⚡ ${target} · ${filtered.length}건`;
   res.innerHTML=renderDayView(target,sorted);
-  setTimeout(syncRowHeights,50);
+  setTimeout(()=>{refreshDayMore();syncRowHeights();},50);
 }
 
 function clearDateSearch(){
   const el=document.getElementById('dateSearch');
   if(el)el.value='';
+  localStorage.removeItem(LAST_DATE_KEY);
   const res=document.getElementById('dateResults');
   if(res)res.innerHTML='<div class="nores">📅 위에서 날짜를 선택해주세요.</div>';
   const st=document.getElementById('dateStatus');
   if(st){st.style.color='var(--g)';st.textContent='날짜를 선택하면 그날 판매 내역이 나옵니다';}
+}
+
+// 새로고침 후 마지막 선택 날짜 복원 (고객검색의 검색어 복원과 동일 방식)
+function restoreLastDate(){
+  const d=localStorage.getItem(LAST_DATE_KEY);
+  if(d && ALL_DATA.length>0){
+    const el=document.getElementById('dateSearch');
+    if(el){el.value=d;doDateSearch();}
+  }
+}
+
+// 날짜검색 2페이지: 한 줄을 넘치는 비고/고객관리에만 더보기 버튼 표시
+function refreshDayMore(){
+  document.querySelectorAll('#dateResults .daynote-text').forEach(el=>{
+    const btn=el.nextElementSibling;
+    if(!btn||!btn.classList.contains('ritem-hcall-more'))return;
+    if(el.classList.contains('expanded'))return; // 이미 펼친 상태는 유지
+    btn.style.display = (el.scrollHeight>el.clientHeight+2) ? '' : 'none';
+  });
 }
 
 // 날짜검색: 고객검색과 동일한 행 배치. 모든 사용자에게 금액 포함 전체 표시.
@@ -1212,19 +1240,17 @@ function renderDayView(dateStr,recs){
   const noteRows=recs.map(r=>{
     const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
     const bigoText=hasBigo?cleanBigo(r.b):'';
-    const bigoLong=hasBigo&&bigoText.length>80;
     const hasH=r.h&&String(r.h).trim()&&r.h!=='-';
     const hText=hasH?String(r.h).trim():'';
-    const hLong=hasH&&hText.length>80;
-    const moreBtn=`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`;
+    const moreBtn=`<button class="ritem-hcall-more" onclick="toggleHcall(this)" style="display:none"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`;
     return `<li class="hitem">
       <div class="hitem-date">${highlightKeywords(escapeHtml(String(r.n||'-')))}</div>
       <div class="daynote-label">📝 비고</div>
-      <div class="hitem-text">${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
-      ${bigoLong?moreBtn:''}
+      <div class="daynote-text">${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+      ${hasBigo?moreBtn:''}
       <div class="daynote-label hc" style="margin-top:8px">💬 고객관리</div>
-      <div class="hitem-text">${hasH?highlightKeywords(escapeHtml(hText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
-      ${hLong?moreBtn:''}
+      <div class="daynote-text">${hasH?highlightKeywords(escapeHtml(hText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+      ${hasH?moreBtn:''}
     </li>`;
   }).join('');
 
