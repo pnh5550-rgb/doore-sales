@@ -169,6 +169,9 @@ html{background:#e9e4f5}
 .ritem-empty{color:#ccc;font-weight:500}
 .rcrop{flex:1;min-width:0;font-size:13px;color:#4b5563;font-weight:600;line-height:1.5;word-break:break-all;text-align:right}
 .rregion{font-size:13px;color:#4b5563;font-weight:700;line-height:1.5;word-break:break-all;text-align:left;flex-shrink:0}
+.rname{color:#1a1a2e;font-size:15px;font-weight:900;min-width:70px;max-width:120px;flex-shrink:0;word-break:break-all;line-height:1.3}
+.daynote-label{font-size:12px;font-weight:800;color:var(--p);margin-bottom:2px}
+.daynote-label.hc{color:#0891b2}
 .ritem-sub{width:100%;display:flex;gap:8px;align-items:flex-start}
 .ritem-bigo{width:100%;font-size:14px;color:#374151;font-weight:700;line-height:1.55;word-break:break-all;padding:4px 2px 0 2px;margin-top:2px}
 /* 키워드 자동 강조 */
@@ -1140,21 +1143,21 @@ function clearDateSearch(){
   if(st){st.style.color='var(--g)';st.textContent='날짜를 선택하면 그날 판매 내역이 나옵니다';}
 }
 
-// 날짜검색: 모든 사용자에게 전체 항목(금액 포함) 표시. 옆으로 밀면 비고·작물상태.
+// 날짜검색: 고객검색과 동일한 행 배치. 모든 사용자에게 금액 포함 전체 표시.
+// 1페이지=거래목록(고객명/수량/판매구분·배송/금액 + 지역·작물), 옆으로 밀면 2페이지=비고·고객관리.
 function renderDayView(dateStr,recs){
   const parts=dateStr.split('-');
   const dt=new Date(parseInt(parts[0],10),parseInt(parts[1],10)-1,parseInt(parts[2],10));
   const wk=['일','월','화','수','목','금','토'][dt.getDay()]||'';
 
   const tSales=recs.reduce((s,r)=>s+pa(r.s),0);
-  const tUnpaid=recs.reduce((s,r)=>s+pa(r.u),0);
   const tQty=recs.reduce((s,r)=>{const q=parseInt(String(r.q||'').replace(/[^0-9-]/g,''),10);return s+(isNaN(q)?0:q);},0);
 
-  let unpaidLabel='미수금 합계',unpaidClass='ok';
-  if(tUnpaid>0){unpaidClass='danger';}
-  else if(tUnpaid<0){unpaidLabel='선입금 합계';unpaidClass='prepay';}
+  // 미수금과 선입금을 분리 집계
+  let tUnpaidPos=0,tPrepay=0;
+  recs.forEach(r=>{const u=pa(r.u);if(u>0)tUnpaidPos+=u;else if(u<0)tPrepay+=Math.abs(u);});
 
-  // 1페이지: 거래 목록 (고객명 / 수량 / 판매구분·배송 / 금액)
+  // 1페이지: 고객명 / 수량 / 판매구분 · 배송방식 / 금액  (아랫줄: 📍지역 왼쪽 · 🌱작물 오른쪽)
   const tradeRows=recs.map(r=>{
     const amt=pa(r.s);
     const unpaid=pa(r.u);
@@ -1169,7 +1172,11 @@ function renderDayView(dateStr,recs){
     if(isPrepayOnly)amtClass=' prepay';
     else if(amt<0)amtClass=' neg';
 
+    const cropTxt=r.cs&&String(r.cs).trim()&&r.cs!=='-'?String(r.cs).trim():'';
     const regTxt=r.r&&String(r.r).trim()?String(r.r).trim():'';
+    const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+highlightKeywords(escapeHtml(cropTxt)):''}</span></div>`:'';
+
+    // 판매구분(굵게) · 배송방식(가는 글씨)
     const typeText=r.t?String(r.t).trim():'';
     const dvText=r.dl?String(r.dl).trim():'';
     let typeDvHtml='';
@@ -1178,16 +1185,9 @@ function renderDayView(dateStr,recs){
     else if(dvText)typeDvHtml=`<span style="color:#374151;font-weight:500">${escapeHtml(dvText)}</span>`;
     else typeDvHtml='-';
 
-    const subParts=[];
-    if(regTxt)subParts.push('📍 '+escapeHtml(regTxt));
-    if(unpaid>0)subParts.push('<span style="color:var(--r);font-weight:800">미수 '+Math.abs(unpaid).toLocaleString()+'원</span>');
-    else if(unpaid<0&&!isPrepayOnly)subParts.push('<span style="color:#2563eb;font-weight:800">선입금 '+Math.abs(unpaid).toLocaleString()+'원</span>');
-    const subRow=subParts.length?`<div class="ritem-sub"><span class="rtype">${subParts.join(' · ')}</span></div>`:'';
-
-    // 금액 0원 특수상태 배경색 (비고/작물/고객명 내용 기준)
+    // 금액 0원 특수상태 배경색 (비고/작물/고객명 기준)
     const bigoBg=(r.b&&String(r.b).trim()&&r.b!=='-')?cleanBigo(r.b):'';
-    const cropBg=(r.cs&&String(r.cs).trim()&&r.cs!=='-')?String(r.cs).trim():'';
-    const combinedText=bigoBg+' '+cropBg+' '+(r.n||'');
+    const combinedText=bigoBg+' '+cropTxt+' '+(r.n||'');
     let mainRowClass='ritem-main-row';
     if(amt===0){
       if(/서비스/.test(combinedText))mainRowClass+=' bg-service';
@@ -1196,31 +1196,35 @@ function renderDayView(dateStr,recs){
 
     return `<li class="ritem">
       <div class="${mainRowClass}">
+        <span class="rname">${highlightKeywords(escapeHtml(String(r.n||'-')))}</span>
         <span class="rqty">${r.q||'-'}</span>
-        <span class="rtype" style="font-weight:900;color:#1a1a2e">${highlightKeywords(escapeHtml(String(r.n||'-')))}</span>
+        <span class="rtype">${typeDvHtml}</span>
         <div class="ritem-amt-col">
           <span class="ramt${amtClass}">${faNum(displayAmt)}</span>
           <div class="rstatus">${bdg}</div>
         </div>
       </div>
-      <div class="ritem-sub"><span class="rtype" style="font-size:14px">${typeDvHtml}</span></div>
       ${subRow}
     </li>`;
   }).join('');
 
-  // 2페이지: 비고 · 작물상태 (옆으로 밀면 표시)
+  // 2페이지: 위=비고, 아래=고객관리 (내용 길면 더보기)
   const noteRows=recs.map(r=>{
     const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
     const bigoText=hasBigo?cleanBigo(r.b):'';
-    const hasCrop=r.cs&&String(r.cs).trim()&&r.cs!=='-';
-    const cropText=hasCrop?String(r.cs).trim():'';
-    let body='';
-    if(hasBigo)body+=`<div style="font-size:15px;color:#374151;font-weight:700;line-height:1.55;word-break:break-all;margin-bottom:${hasCrop?'6px':'0'}">📝 ${highlightKeywords(escapeHtml(bigoText))}</div>`;
-    if(hasCrop)body+=`<div style="font-size:15px;color:#374151;font-weight:700;line-height:1.55;word-break:break-all">🌱 ${highlightKeywords(escapeHtml(cropText))}</div>`;
-    if(!body)body='<span class="ritem-empty">- 내용 없음 -</span>';
+    const bigoLong=hasBigo&&bigoText.length>80;
+    const hasH=r.h&&String(r.h).trim()&&r.h!=='-';
+    const hText=hasH?String(r.h).trim():'';
+    const hLong=hasH&&hText.length>80;
+    const moreBtn=`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`;
     return `<li class="hitem">
       <div class="hitem-date">${highlightKeywords(escapeHtml(String(r.n||'-')))}</div>
-      ${body}
+      <div class="daynote-label">📝 비고</div>
+      <div class="hitem-text">${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+      ${bigoLong?moreBtn:''}
+      <div class="daynote-label hc" style="margin-top:8px">💬 고객관리</div>
+      <div class="hitem-text">${hasH?highlightKeywords(escapeHtml(hText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+      ${hLong?moreBtn:''}
     </li>`;
   }).join('');
 
@@ -1234,7 +1238,7 @@ function renderDayView(dateStr,recs){
     </div>
     <div class="ritem-page">
       <div class="ritem-page-header">
-        <div class="ritem-page-title">📝 비고·작물상태 <span class="sec-count">(${recs.length}건)</span></div>
+        <div class="ritem-page-title">📝 비고·고객관리 <span class="sec-count">(${recs.length}건)</span></div>
         <span class="ritem-page-hint">옆으로 밀어보세요 →</span>
       </div>
       <ul class="hlist">${noteRows}</ul>
@@ -1255,10 +1259,11 @@ function renderDayView(dateStr,recs){
     <div class="divider"></div>
     <div class="sec">💰 합계</div>
     <div class="sgrid">
+      <div class="sc"><div class="sl2">거래 건수</div><div class="sv2">${recs.length}건</div></div>
       <div class="sc"><div class="sl2">총 수량</div><div class="sv2">${tQty.toLocaleString()}</div></div>
       <div class="sc"><div class="sl2">총 판매금액</div><div class="sv2${tSales<0?' prepay':''}">${fa(tSales)}</div></div>
-      <div class="sc"><div class="sl2">${unpaidLabel}</div><div class="sv2 ${unpaidClass}">${fa(Math.abs(tUnpaid))}</div></div>
-      <div class="sc"><div class="sl2">거래 건수</div><div class="sv2">${recs.length}건</div></div>
+      <div class="sc"><div class="sl2">미수금액</div><div class="sv2${tUnpaidPos>0?' danger':''}">${fa(tUnpaidPos)}</div></div>
+      <div class="sc" style="grid-column:1/-1"><div class="sl2">선입금 금액</div><div class="sv2${tPrepay>0?' prepay':''}">${fa(tPrepay)}</div></div>
     </div>
   </div>`;
 }
