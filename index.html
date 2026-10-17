@@ -1192,7 +1192,7 @@ function renderDayView(dateStr,recs){
     let bdg='';
     if(unpaid>0)bdg='<span class="badge unpaid">미수</span>';
     else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
-    else if(amt!==0)bdg='<span class="badge paid">완납</span>';
+    else if(amt!==0)bdg='<span class="badge paid">'+escapeHtml((r.pm&&String(r.pm).trim())?String(r.pm).trim():'완납')+'</span>';
 
     const isPrepayOnly=amt===0&&unpaid<0;
     const displayAmt=isPrepayOnly?Math.abs(unpaid):amt;
@@ -1476,7 +1476,7 @@ function renderCard(c,perms,searchQuery){
         if(has('미수금액')){
           if(unpaid>0)bdg='<span class="badge unpaid">미수</span>';
           else if(unpaid<0)bdg='<span class="badge prepaid">선입금</span>';
-          else if(amt!==0)bdg='<span class="badge paid">완납</span>';
+          else if(amt!==0)bdg='<span class="badge paid">'+escapeHtml((r.pm&&String(r.pm).trim())?String(r.pm).trim():'완납')+'</span>';
         }
         // 선입금만 받은 거래 (판매금액 0이고 미수금액 음수)일 때, 판매금액 자리에 입금액 표시
         const isPrepayOnly=amt===0&&unpaid<0;
