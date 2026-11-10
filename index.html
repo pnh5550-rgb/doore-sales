@@ -872,6 +872,30 @@ function updateInfo(){
   }
 }
 
+// 첫 데이터 로드 실패 시: 로그아웃하지 않고 자동 재시도 (네트워크 복구 대기)
+let _initRetryCount = 0;
+function retryInitialLoad(){
+  const st=document.getElementById('status');
+  _initRetryCount++;
+  if(_initRetryCount>6){
+    if(st){st.style.color='var(--r)';st.textContent='⚠️ 네트워크를 확인하고 🔄 새로고침을 눌러주세요';}
+    return;
+  }
+  if(st){st.style.color='var(--m)';st.textContent='⏳ 데이터를 불러오는 중... (자동 재시도 '+_initRetryCount+')';}
+  const delay=Math.min(2000*_initRetryCount, 12000);
+  setTimeout(async ()=>{
+    try{
+      await loadDataFromServer();
+      _initRetryCount=0;
+      finishMain();
+      if(st){st.style.color='var(--g)';st.textContent='✅ 로그인 완료';}
+    }catch(e){
+      console.warn('재시도 실패:', e);
+      retryInitialLoad();
+    }
+  }, delay);
+}
+
 async function refreshData(){
   const btn=document.querySelector('.refresh-btn');
   btn.textContent='⏳ 갱신중';
@@ -2112,10 +2136,9 @@ document.addEventListener('visibilitychange', () => {
               finishMain();
             } catch(e) {
               console.error('첫 데이터 로드 실패:', e);
-              localStorage.removeItem(SESSION_KEY);
-              document.documentElement.classList.remove('has-session');
-              document.getElementById('mainPage').classList.add('hidden');
-              document.getElementById('loginPage').classList.remove('hidden');
+              // 데이터 로드가 실패해도 로그인은 유지한다 (세션 삭제 금지).
+              // 네트워크가 돌아오면 자동으로 다시 불러온다.
+              retryInitialLoad();
             }
           }
         });
