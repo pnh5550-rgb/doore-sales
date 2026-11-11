@@ -231,7 +231,14 @@ html{background:#e9e4f5}
 .rtype{font-size:15px;flex:1;min-width:0;word-break:break-all;line-height:1.4}
 .ritem-amt-col{display:flex;flex-direction:column;align-items:flex-end;min-width:80px;flex-shrink:0;gap:2px}
 .ramt{font-weight:900;font-size:17px;text-align:right;color:var(--t);line-height:1.2}
-.rstatus{min-height:22px;display:flex;align-items:center;justify-content:flex-end}
+.rstatus{min-height:22px;display:flex;align-items:center;justify-content:flex-end;gap:5px}
+/* 메모 배지 (주황 알약) + 팝업 */
+.memo-badge{background:linear-gradient(180deg,#fbbf24 0%,#f59e0b 55%,#d97706 100%);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px;border:none;cursor:pointer;white-space:nowrap;vertical-align:middle;line-height:1.3;text-shadow:0 1px 1px rgba(146,64,14,0.45);box-shadow:0 2px 3px rgba(180,83,9,0.4),inset 0 1px 0 rgba(255,255,255,0.55),inset 0 -1px 2px rgba(146,64,14,0.35)}
+.memo-badge:active{transform:translateY(1px) scale(0.96);box-shadow:0 1px 2px rgba(180,83,9,0.4),inset 0 1px 2px rgba(146,64,14,0.5)}
+.memo-item{padding:12px 14px;margin-bottom:10px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px}
+.memo-item:last-child{margin-bottom:0}
+.memo-item-col{display:inline-block;font-size:12px;font-weight:800;color:#fff;background:#f59e0b;padding:2px 10px;border-radius:12px;margin-bottom:8px}
+.memo-item-text{font-size:15px;color:#1a1a2e;font-weight:600;line-height:1.65;word-break:break-all;white-space:pre-wrap}
 .ramt.neg{color:var(--g)}
 .ramt.prepay{color:#2563eb}
 .badge{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:800;white-space:nowrap}
@@ -562,6 +569,16 @@ html.has-session #mainPage{display:block}
       <button class="modal-close" onclick="closeWarnings()">✕</button>
     </div>
     <div class="modal-body" id="warnModalBody"></div>
+  </div>
+</div>
+
+<div id="memoModal" class="modal-overlay hidden" onclick="if(event.target===this)closeMemo()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">📋 메모</div>
+      <button class="modal-close" onclick="closeMemo()">✕</button>
+    </div>
+    <div class="modal-body" id="memoModalBody"></div>
   </div>
 </div>
 
@@ -945,6 +962,38 @@ function closeWarnings(){
 }
 
 // ═══════════════════════════════════════════
+// 메모 (엑셀 셀 메모) 배지 + 팝업
+// ═══════════════════════════════════════════
+// 각 거래의 r.m = [{c:"입금액", t:"메모내용"}, ...] (동기화에서 채워줌)
+function memoBadge(r){
+  if(!r || !Array.isArray(r.m) || r.m.length===0) return '';
+  const json = escapeHtml(JSON.stringify(r.m));
+  return `<button class="memo-badge" data-memo="${json}" onclick="openMemoFromEl(event,this)">메모</button>`;
+}
+function openMemoFromEl(ev, el){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  let arr=[];
+  try{ arr=JSON.parse(el.getAttribute('data-memo')||'[]'); }catch(e){}
+  openMemoModal(arr);
+}
+function openMemoModal(arr){
+  const body=document.getElementById('memoModalBody');
+  if(!arr || !arr.length){
+    body.innerHTML='<div class="nores">메모가 없습니다.</div>';
+  }else{
+    body.innerHTML=arr.map(m=>{
+      const col=escapeHtml(String((m&&m.c)||'메모'));
+      const txt=highlightKeywords(escapeHtml(String((m&&m.t)||'')));
+      return `<div class="memo-item"><span class="memo-item-col">${col}</span><div class="memo-item-text">${txt}</div></div>`;
+    }).join('');
+  }
+  document.getElementById('memoModal').classList.remove('hidden');
+}
+function closeMemo(){
+  document.getElementById('memoModal').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════
 // 화면 전환
 // ═══════════════════════════════════════════
 function fixTabBar(){
@@ -1252,7 +1301,7 @@ function renderDayView(dateStr,recs){
         <span class="rtype">${typeDvHtml}</span>
         <div class="ritem-amt-col">
           <span class="ramt${amtClass}">${faNum(displayAmt)}</span>
-          <div class="rstatus">${bdg}</div>
+          <div class="rstatus">${memoBadge(r)}${bdg}</div>
         </div>
       </div>
       ${subRow}
@@ -1511,7 +1560,8 @@ function renderCard(c,perms,searchQuery){
         const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+highlightKeywords(escapeHtml(cropTxt)):''}</span></div>`:'';
         const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
         const bigoText=hasBigo?cleanBigo(r.b):'';
-        const bigoRow=has('비고')?`<div class="ritem-bigo">📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+        const mb=memoBadge(r);
+        const bigoRow=has('비고')?`<div class="ritem-bigo">${mb?mb+' ':''}📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
 
         // 비고/작물상태/고객명 내용에 따른 배경 색상 결정
         // 금액이 0원인 경우만 특수 배경 적용 (실제 거래가 없는 예약/연기/취소 상태)
