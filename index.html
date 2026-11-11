@@ -965,10 +965,22 @@ function closeWarnings(){
 // 메모 (엑셀 셀 메모) 배지 + 팝업
 // ═══════════════════════════════════════════
 // 각 거래의 r.m = [{c:"입금액", t:"메모내용"}, ...] (동기화에서 채워줌)
-function memoBadge(r){
-  if(!r || !Array.isArray(r.m) || r.m.length===0) return '';
-  const json = escapeHtml(JSON.stringify(r.m));
+// 금액/입금 관련 메모는 계좌 앞에, 비고 등 나머지 메모는 연필 앞에 표시
+const PAY_MEMO_COLS = ['판매금액','입금액','입금방법','입금일자','미수금액','단가','수량'];
+function splitMemos(r){
+  const all = (r && Array.isArray(r.m)) ? r.m : [];
+  const pay=[], note=[];
+  all.forEach(m=>{ (PAY_MEMO_COLS.indexOf(m && m.c)>=0 ? pay : note).push(m); });
+  return { pay: pay, note: note };
+}
+function memoBadgeFor(arr){
+  if(!Array.isArray(arr) || arr.length===0) return '';
+  const json = escapeHtml(JSON.stringify(arr));
   return `<button class="memo-badge" data-memo="${json}" onclick="openMemoFromEl(event,this)">메모</button>`;
+}
+// (날짜검색 등) 메모 전체를 한 배지로
+function memoBadge(r){
+  return memoBadgeFor((r && Array.isArray(r.m)) ? r.m : []);
 }
 function openMemoFromEl(ev, el){
   if(ev && ev.stopPropagation) ev.stopPropagation();
@@ -1560,8 +1572,11 @@ function renderCard(c,perms,searchQuery){
         const subRow=(cropTxt||regTxt)?`<div class="ritem-sub"><span class="rregion">${regTxt?'📍 '+escapeHtml(regTxt):''}</span><span class="rcrop">${cropTxt?'🌱 '+highlightKeywords(escapeHtml(cropTxt)):''}</span></div>`:'';
         const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
         const bigoText=hasBigo?cleanBigo(r.b):'';
-        const mb=memoBadge(r);
-        const bigoRow=has('비고')?`<div class="ritem-bigo">${mb?mb+' ':''}📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
+        // 메모를 금액 쪽 / 비고 쪽으로 분리
+        const sp=splitMemos(r);
+        const noteMb=has('비고')?memoBadgeFor(sp.note):'';   // 비고 쪽 메모 → 연필 앞
+        const payMb=has('비고')?memoBadgeFor(sp.pay):'';     // 금액 쪽 메모 → 계좌 앞
+        const bigoRow=has('비고')?`<div class="ritem-bigo">${noteMb?noteMb+' ':''}📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`:'';
 
         // 비고/작물상태/고객명 내용에 따른 배경 색상 결정
         // 금액이 0원인 경우만 특수 배경 적용 (실제 거래가 없는 예약/연기/취소 상태)
@@ -1596,7 +1611,7 @@ function renderCard(c,perms,searchQuery){
             <span class="rtype">${typeDvHtml}</span>
             <div class="ritem-amt-col">
               ${has('판매금액')?`<span class="ramt${amtClass}">${faNum(displayAmt)}</span>`:'<span class="ramt" style="color:#ddd">-</span>'}
-              <div class="rstatus">${bdg}</div>
+              <div class="rstatus">${payMb}${bdg}</div>
             </div>
           </div>
           ${subRow}
