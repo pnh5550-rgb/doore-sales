@@ -698,6 +698,21 @@ function typeSpan(typeText){
   return `<span style="color:#1a1a2e;font-weight:900">${escapeHtml(t)}</span>`;
 }
 
+// 고객관리: 엑셀 셀 안 서식(색상·굵기)대로 표시. r.hr(서식 run) 있으면 그대로, 없으면 기존 방식
+function renderHcall(r){
+  if(r && Array.isArray(r.hr) && r.hr.length){
+    return r.hr.map(run=>{
+      const t=escapeHtml(String(run.t||''));
+      const st=[];
+      if(run.c && /^#[0-9a-fA-F]{3,8}$/.test(run.c)) st.push('color:'+run.c);
+      if(run.b) st.push('font-weight:900');
+      return st.length?`<span style="${st.join(';')}">${t}</span>`:t;
+    }).join('');
+  }
+  const plain=(r && r.h)?String(r.h).trim():'';
+  return (plain && plain!=='-')?highlightKeywords(escapeHtml(plain)):'<span class="ritem-empty">- 내용 없음 -</span>';
+}
+
 function highlightKeywords(escapedText){
   if(!escapedText)return escapedText;
   let result = escapedText;
@@ -1342,7 +1357,7 @@ function renderDayView(dateStr,recs){
       <div class="daynote-text">${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
       ${hasBigo?moreBtn:''}
       <div class="daynote-label hc" style="margin-top:8px">💬 고객관리</div>
-      <div class="daynote-text">${hasH?highlightKeywords(escapeHtml(hText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+      <div class="daynote-text">${renderHcall(r)}</div>
       ${hasH?moreBtn:''}
     </li>`;
   }).join('');
@@ -1644,7 +1659,7 @@ function renderCard(c,perms,searchQuery){
           const showMore=hasH&&txtLen>80;
           return `<li class="hitem">
             <div class="hitem-date">${r.d||'-'}</div>
-            <div class="hitem-text">${hasH?highlightKeywords(escapeHtml(r.h)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
+            <div class="hitem-text">${renderHcall(r)}</div>
             ${showMore?`<button class="ritem-hcall-more" onclick="toggleHcall(this)"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`:''}
           </li>`;
         }).join('');
