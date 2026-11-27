@@ -1330,6 +1330,14 @@ function renderDayView(dateStr,recs){
       else if(/연기|보류|취소/.test(combinedText))mainRowClass+=' bg-delay';
     }
 
+    // 메모를 금액 쪽/비고 쪽으로 분리, 비고는 1페이지에 인라인 (고객검색과 동일)
+    const sp=splitMemos(r);
+    const noteMb=memoBadgeFor(sp.note);
+    const payMb=memoBadgeFor(sp.pay);
+    const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
+    const bigoText=hasBigo?cleanBigo(r.b):'';
+    const bigoRow=`<div class="ritem-bigo">${noteMb?noteMb+' ':''}📝 ${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>`;
+
     return `<li class="ritem">
       <div class="${mainRowClass}">
         <span class="rname">${highlightKeywords(escapeHtml(String(r.n||'-')))}</span>
@@ -1337,26 +1345,20 @@ function renderDayView(dateStr,recs){
         <span class="rtype">${typeDvHtml}</span>
         <div class="ritem-amt-col">
           <span class="ramt${amtClass}">${faNum(displayAmt)}</span>
-          <div class="rstatus">${memoBadge(r)}${bdg}</div>
+          <div class="rstatus">${payMb}${bdg}</div>
         </div>
       </div>
       ${subRow}
+      ${bigoRow}
     </li>`;
   }).join('');
 
-  // 2페이지: 위=비고, 아래=고객관리 (내용 길면 더보기)
+  // 2페이지: 고객관리만 (고객검색과 동일)
   const noteRows=recs.map(r=>{
-    const hasBigo=r.b&&String(r.b).trim()&&r.b!=='-';
-    const bigoText=hasBigo?cleanBigo(r.b):'';
     const hasH=r.h&&String(r.h).trim()&&r.h!=='-';
-    const hText=hasH?String(r.h).trim():'';
     const moreBtn=`<button class="ritem-hcall-more" onclick="toggleHcall(this)" style="display:none"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`;
     return `<li class="hitem">
       <div class="hitem-date">${highlightKeywords(escapeHtml(String(r.n||'-')))}</div>
-      <div class="daynote-label">📝 비고</div>
-      <div class="daynote-text">${hasBigo?highlightKeywords(escapeHtml(bigoText)):'<span class="ritem-empty">- 내용 없음 -</span>'}</div>
-      ${hasBigo?moreBtn:''}
-      <div class="daynote-label hc" style="margin-top:8px">💬 고객관리</div>
       <div class="daynote-text">${renderHcall(r)}</div>
       ${hasH?moreBtn:''}
     </li>`;
@@ -1372,7 +1374,7 @@ function renderDayView(dateStr,recs){
     </div>
     <div class="ritem-page">
       <div class="ritem-page-header">
-        <div class="ritem-page-title">📝 비고·고객관리 <span class="sec-count">(${recs.length}건)</span></div>
+        <div class="ritem-page-title">💬 고객관리 <span class="sec-count">(${recs.length}건)</span></div>
         <span class="ritem-page-hint">옆으로 밀어보세요 →</span>
       </div>
       <ul class="hlist">${noteRows}</ul>
