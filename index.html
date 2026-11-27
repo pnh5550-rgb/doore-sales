@@ -771,7 +771,7 @@ function toggleHcall(btn){
     if(arrow)arrow.textContent='▴';
   }
   // 펼치기/접기 후 높이 재정렬
-  setTimeout(syncRowHeights,30);
+  scheduleSyncRowHeights();
 }
 
 async function fbFetch(path){
@@ -1169,7 +1169,7 @@ function switchTab(tab, preserveSearch){
   localStorage.setItem(LAST_TAB_KEY, tab);
 
   if(tab==='analysis'&&ALL_DATA.length>0)runAnalysis();
-  if(tab==='date')setTimeout(()=>{refreshDayMore();syncRowHeights();},60);
+  if(tab==='date')setTimeout(()=>{refreshDayMore();scheduleSyncRowHeights();},60);
 }
 
 // ═══════════════════════════════════════════
@@ -1248,7 +1248,7 @@ function doDateSearch(){
   st.style.color='var(--g)';
   st.textContent=`⚡ ${target} · ${filtered.length}건`;
   res.innerHTML=renderDayView(target,sorted);
-  setTimeout(()=>{refreshDayMore();syncRowHeights();},50);
+  setTimeout(()=>{refreshDayMore();scheduleSyncRowHeights();},50);
 }
 
 function clearDateSearch(){
@@ -1358,7 +1358,6 @@ function renderDayView(dateStr,recs){
     const hasH=r.h&&String(r.h).trim()&&r.h!=='-';
     const moreBtn=`<button class="ritem-hcall-more" onclick="toggleHcall(this)" style="display:none"><span class="more-text">더보기</span><span class="arrow">▾</span></button>`;
     return `<li class="hitem">
-      <div class="hitem-date">${highlightKeywords(escapeHtml(String(r.n||'-')))}</div>
       <div class="daynote-text">${renderHcall(r)}</div>
       ${hasH?moreBtn:''}
     </li>`;
@@ -1493,7 +1492,7 @@ function doSearch(){
     st.textContent=`⚡ ${filtered.length}건${mode}`;
     res.innerHTML=renderCard(card,perms,q);
     // 두 페이지의 같은 인덱스 항목 높이 정렬
-    setTimeout(syncRowHeights,50);
+    scheduleSyncRowHeights();
   },30);
 }
 
@@ -1517,6 +1516,19 @@ function syncRowHeights(){
       hcallItems[i].style.minHeight=h+'px';
     }
   });
+}
+
+// 레이아웃·웹폰트·서식이 안정된 뒤 여러 번 다시 맞춰서 밀림 방지
+function scheduleSyncRowHeights(){
+  // 레이아웃 반영 후(더블 rAF)
+  requestAnimationFrame(()=>requestAnimationFrame(syncRowHeights));
+  // 지연 재실행(리치텍스트·줄바꿈 정착 후)
+  setTimeout(syncRowHeights,120);
+  setTimeout(syncRowHeights,350);
+  // 웹폰트 로딩 완료 후
+  if(document.fonts&&document.fonts.ready){
+    document.fonts.ready.then(()=>syncRowHeights());
+  }
 }
 
 function renderCard(c,perms,searchQuery){
